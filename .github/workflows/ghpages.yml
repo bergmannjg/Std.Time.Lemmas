@@ -29,6 +29,6 @@ jobs:
       - name: Build
         uses: leanprover/lean-action@v1
         with:
-          lint-module: Time
+          lint: true
           use-mathlib-cache: false
           test: false

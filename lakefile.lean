@@ -6,6 +6,7 @@ require batteries from git "https://github.com/leanprover-community/batteries" @
 require tryAtEachStep from git "https://github.com/dwrensha/tryAtEachStep" @ "main"
 
 package time {
+  lintDriver := "batteries/runLinter"
 }
 
 @[default_target]
