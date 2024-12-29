@@ -9,12 +9,13 @@ import Time.Data.Int.Lemmas
 
 main theorem:
 
-* `Std.Time.ofDaysSinceUNIXEpochIsValid`: proof that the date of `Std.Time.ofDaysSinceUNIXEpoch'` is valid.
+* `Std.Time.Verification.isValid`: proof that the date of `Std.Time.ofDaysSinceUNIXEpoch'` is valid.
 
 -/
 
 namespace Std
 namespace Time
+namespace Verification
 
 open Std.Time Int
 
@@ -251,43 +252,62 @@ theorem yoe_le {doe yoe : Int} (hdoe : 0 ≤ doe ∧ doe ≤ 146096)
 def isLeapOfYearOfEra (yoe : Nat) : Bool :=
   (yoe + 1) % 4 = 0 ∧ ((yoe + 1) % 100 ≠ 0 ∨ (yoe + 1) % 400 = 0)
 
-theorem doe_eq_364_sub_0 (k n : Nat) (h : n ≤ k - 2) (hk : 2 ≤ k ∧ k < 25)
-  (hdoe : doe = k * 1460 + (k - 2) - n - (365 * ((k * 1460 + (k - 2) - n - k) / 365)
-                + (k * 1460 + (k - 2) - n - k) / 365 / 4))
-    : doe = 364 - n := by
-  rw  [hdoe]
-  have : (k * 1460 + (k - 2) - n - k) = (k * 1460 - n - 2) := by omega
-  rw [this]
-  have : 365 * ((k * 1460 - n - 2) / 365) = k * 1460 - n - 2 - 363 + n := by omega
-  rw [this]
-  omega
+namespace Notation
 
-theorem doy_of_doe_eq_365_0 {doe yoe doy : Nat} (hle1 : 0 ≤ doe ∧ doe < 36524)
-  (hle2 : 0 ≤ doy ∧ doy ≤ 365)
-  (hyoe : yoe = (doe - doe / 1460) / 365) (hdoy : doy = doe - (365 * yoe + yoe / 4))
-    : doe % 1461 = 1460 ↔ doy = 365 :=
-  Iff.intro
-    (fun h => by omega)
-    (fun h => by
-      generalize hk : doe / 1460 = k at h
-      have : k < 25 := by omega
-      if doe = k * 1460 + (k - 1)
-      then omega
-      else
-          have ⟨n, hn⟩ : ∃ (n : Nat), n ≤ k - 2 ∧ doe = k * 1460 + (k - 2) - n := by
-            have ⟨n', hn'⟩ := @Nat.exists_eq_add_of_le' doe.succ (k * 1460 + (k - 1)) (by omega)
+syntax "doeEq364Sub%" num ws num ws num : term
+
+macro_rules
+| `(doeEq364Sub% $k:num $k1:num $k2:num) =>
+    `((fun {doe} k n h hk hdoe => by
+    rw [hdoe]
+    have : (k * 1460 + (k - 2 - $k) - n - k + $k) = (k * 1460 - n - 2) := by omega
+    rw [this]
+    have : 365 * ((k * 1460 - n - 2) / 365) = k * 1460 - n - 2 - 363 + n := by omega
+    rw [this]
+    omega
+    : ∀ {doe : Nat} (k n : Nat),
+            n ≤ k - 2 - $k →
+            $k1 ≤ k ∧ k < $k2 →
+            doe = k * 1460 + (k - 2 - $k) - n
+                    - (365 * ((k * 1460 + (k - 2 - $k) - n - k + $k) / 365)
+                       + (k * 1460 + (k - 2 - $k) - n - k + $k) / 365 / 4 - $k) →
+            doe = 364 - n))
+
+syntax "doyOfDoeEq%" num ws num ws num ws num ws num ws num : term
+
+macro_rules
+| `(doyOfDoeEq% $k:num $k1:num $k2:num $n1:num $n2:num $n3:num) =>
+    `((fun doe yoe doy hle1 hle2 hyoe hdoy =>
+    Iff.intro
+      (fun h => by omega)
+      (fun h => by
+        generalize hk : doe / 1460 = k at h
+        if doe = k * 1460 + (k - 1) ∨ doe = k * 1460 + (k - $n1) ∨ doe = k * 1460 + (k - $n2)
+            ∨ doe = k * 1460 + (k - $n3)
+        then omega
+        else
+          have ⟨n, hn⟩ : ∃ (n : Nat), n ≤ k - 2 - $k ∧ doe = k * 1460 + (k - 2 - $k) - n := by
+            have ⟨n', hn'⟩ := @Nat.exists_eq_add_of_le' doe.succ (k * 1460 + (k - 1 - $k)) (by omega)
             exact ⟨n', by omega⟩
           have : doy = 364 - n := by
             rw [hdoy, hyoe, hk, hn.right]
-            exact doe_eq_364_sub_0 k n hn.left (by omega) rfl
+            exact (doeEq364Sub% $k:num $k1 $k2) k n hn.left (by omega) rfl
           omega)
+    : ∀ (doe yoe doy : Nat),
+            $k * 36524 ≤ doe ∧ doe < ($k + 1) * 36524 →
+            0 ≤ doy ∧ doy ≤ 365 →
+            yoe = (doe - doe / 1460 + $k) / 365 →
+            doy = doe - (365 * yoe + yoe / 4 - $k) →
+            (doe % 1461 + $k = 1460 ↔ doy = 365)))
+
+end Notation
 
 theorem doy_of_doe_lt_365_0 {doe yoe doy : Nat} (hle1 : 0 ≤ doe ∧ doe < 36524)
   (hle2 : 0 ≤ doy ∧ doy ≤ 365)
   (hyoe : yoe = (doe - doe / 1460) / 365) (hdoy : doy = doe - (365 * yoe + yoe / 4))
   (hlt : doe % 1461 < 1460)
     : doy < 365 := by
-  have := doy_of_doe_eq_365_0 hle1 hle2 hyoe hdoy
+  have := (doyOfDoeEq% 0 2 25 1 1 1) doe yoe doy hle1 hle2 hyoe hdoy
   omega
 
 theorem not_isLeapOfYearOfEra {yoe : Nat} (h : ¬isLeapOfYearOfEra yoe)
@@ -295,6 +315,29 @@ theorem not_isLeapOfYearOfEra {yoe : Nat} (h : ¬isLeapOfYearOfEra yoe)
   unfold isLeapOfYearOfEra at h
   simp_all
   exact Decidable.not_or_of_imp h
+
+theorem doy_of_doe_eq_365 {doe yoe doy : Nat} (hle1 : 36524 ≤ doe ∧ doe < 146096)
+  (hle2 : 0 ≤ doy ∧ doy ≤ 365) (hyoe : yoe = (doe - doe / 1460 + doe / 36524) / 365)
+  (hdoy : doy = doe - (365 * yoe + yoe / 4 - yoe / 100))
+    : doe % 1461 + doe / 36524 = 1460 ↔ doy = 365 := by
+  if h : doe < 2*36524
+  then
+    have :=  (doyOfDoeEq% 1 25 50 2 2 2) doe yoe doy (by omega) hle2 (by omega) (by omega)
+    omega
+  else if h : doe < 3*36524
+  then
+    have := (doyOfDoeEq% 2 50 75 2 3 3) doe yoe doy (by omega) hle2 (by omega) (by omega)
+    omega
+  else
+    have := (doyOfDoeEq% 3 75 100 2 3 4) doe yoe doy (by omega) hle2 (by omega) (by omega)
+    omega
+
+theorem doy_of_doe_lt_365 {doe yoe doy : Nat} (hle1 : 36524 ≤ doe ∧ doe < 146096)
+  (hle2 : 0 ≤ doy ∧ doy ≤ 365) (hyoe : yoe = (doe - doe / 1460 + doe / 36524) / 365)
+  (hdoy : doy = doe - (365 * yoe + yoe / 4 - yoe / 100)) (hne : doe % 1461 + doe / 36524 ≠ 1460)
+    : doy < 365 := by
+  have himp := doy_of_doe_eq_365 hle1 hle2 hyoe hdoy
+  omega
 
 theorem doe_of_mod_lt_0 {doe yoe : Nat} (h : 0 ≤ doe ∧ doe < 36524)
   (hyoe : yoe = (doe - doe / 1460) / 365) (hNot : ¬isLeapOfYearOfEra yoe)
@@ -305,126 +348,6 @@ theorem doe_of_mod_lt_0 {doe yoe : Nat} (h : 0 ≤ doe ∧ doe < 36524)
   if doe = k * 1460 + (k - 1)
   then omega
   else omega
-
-theorem doe_eq_364_sub_1 (k n : Nat) (h : n ≤ k - 3) (hk : 25 ≤ k ∧ k < 49)
-  (hdoe : doe = k * 1460 + (k - 3) - n - (365 * ((k * 1460 + (k - 3) - n - k + 1) / 365)
-                + (k * 1460 + (k - 3) - n - k + 1) / 365 / 4 - 1))
-    : doe = 364 - n := by
-  rw  [hdoe]
-  have : (k * 1460 + (k - 3) - n - k + 1) = (k * 1460 - n - 2) := by omega
-  rw [this]
-  have : 365 * ((k * 1460 - n - 2) / 365) = k * 1460 - n - 2 - 363 + n := by omega
-  rw [this]
-  omega
-
-theorem doy_of_doe_eq_365_1 {doe yoe doy : Nat} (hle1 : 36524 ≤ doe ∧ doe < 2*36524)
-  (hle2 : 0 ≤ doy ∧ doy ≤ 365) (hyoe : yoe = (doe - doe / 1460 + 1) / 365)
-  (hdoy : doy = doe - (365 * yoe + yoe / 4 - 1))
-    : doe % 1461 + 1 = 1460 ↔ doy = 365 :=
-  Iff.intro
-    (fun h => by omega)
-    (fun h => by
-      generalize hk : doe / 1460 = k at h
-      have : 25 ≤ k := by omega
-      have : k < 50 := by omega
-      if doe = k * 1460 + (k - 1) ∨ doe = k * 1460 + (k - 2)
-      then omega
-      else
-        have ⟨n, hn⟩ : ∃ (n : Nat), n ≤ k - 3 ∧ doe = k * 1460 + (k - 3) - n := by
-          have ⟨n', hn'⟩ := @Nat.exists_eq_add_of_le' doe.succ (k * 1460 + (k - 2)) (by omega)
-          exact ⟨n', by omega⟩
-        have : doy = 364 - n := by
-          rw [hdoy, hyoe, hk, hn.right]
-          exact doe_eq_364_sub_1 k n hn.left (by omega) rfl
-        omega)
-
-theorem doe_eq_364_sub_2 (k n : Nat) (h : n ≤ k - 4) (hk : 50 ≤ k ∧ k < 75)
-  (hdoe : doe = k * 1460 + (k - 4) - n - (365 * ((k * 1460 + (k - 4) - n - k + 2) / 365)
-                + (k * 1460 + (k - 4) - n - k + 2) / 365 / 4 - 2))
-    : doe = 364 - n := by
-  rw  [hdoe]
-  have : (k * 1460 + (k - 4) - n - k + 2) = (k * 1460 - n - 2) := by omega
-  rw [this]
-  have : 365 * ((k * 1460 - n - 2) / 365) = k * 1460 - n - 2 - 363 + n := by omega
-  rw [this]
-  omega
-
-theorem doy_of_doe_eq_365_2 {doe yoe doy : Nat} (hle1 : 2*36524 ≤ doe ∧ doe < 3*36524)
-  (hle2 : 0 ≤ doy ∧ doy ≤ 365) (hyoe : yoe = (doe - doe / 1460 + 2) / 365)
-  (hdoy : doy = doe - (365 * yoe + yoe / 4 - 2))
-    : doe % 1461 + 2 = 1460 ↔ doy = 365 :=
-  Iff.intro
-    (fun h => by omega)
-    (fun h => by
-      generalize hk : doe / 1460 = k at h
-      have : 50 ≤ k := by omega
-      have : k < 75 := by omega
-      if doe = k * 1460 + (k - 1) ∨ doe = k * 1460 + (k - 2) ∨ doe = k * 1460 + (k - 3)
-      then omega
-      else
-        have ⟨n, hn⟩ : ∃ (n : Nat), n ≤ k - 4 ∧ doe = k * 1460 + (k - 4) - n := by
-          have ⟨n', hn'⟩ := @Nat.exists_eq_add_of_le' doe.succ (k * 1460 + (k - 3)) (by omega)
-          exact ⟨n', by omega⟩
-        have : doy = 364 - n := by
-          rw [hdoy, hyoe, hk, hn.right]
-          exact doe_eq_364_sub_2 k n hn.left (by omega) (by omega)
-        omega)
-
-theorem doe_eq_364_sub_3 (k n : Nat) (h : n ≤ k - 5) (hk : 75 ≤ k ∧ k < 100)
-  (hdoe : doe = k * 1460 + (k - 5) - n - (365 * ((k * 1460 + (k - 5) - n - k + 3) / 365)
-                + (k * 1460 + (k - 5) - n - k + 3) / 365 / 4 - 3))
-    : doe = 364 - n := by
-  rw  [hdoe]
-  have : (k * 1460 + (k - 5) - n - k + 3) = (k * 1460 - n - 2) := by omega
-  rw [this]
-  have : 365 * ((k * 1460 - n - 2) / 365) = k * 1460 - n - 2 - 363 + n := by omega
-  rw [this]
-  omega
-
-theorem doy_of_doe_eq_365_3 {doe yoe doy : Nat} (hle1 : 3*36524 ≤ doe ∧ doe < 4*36524)
-  (hle2 : 0 ≤ doy ∧ doy ≤ 365) (hyoe : yoe = (doe - doe / 1460 + 3) / 365)
-  (hdoy : doy = doe - (365 * yoe + yoe / 4 - 3))
-    : doe % 1461 + 3 = 1460 ↔ doy = 365 :=
-  Iff.intro
-    (fun h => by omega)
-    (fun h => by
-      generalize hk : doe / 1460 = k at h
-      have : 75 ≤ k := by omega
-      have : k < 100 := by omega
-      if doe = k * 1460 + (k - 1) ∨ doe = k * 1460 + (k - 2) ∨ doe = k * 1460 + (k - 3)
-          ∨ doe = k * 1460 + (k - 4)
-      then omega
-      else
-        have ⟨n, hn⟩ : ∃ (n : Nat), n ≤ k - 5 ∧ doe = k * 1460 + (k - 5) - n := by
-          have ⟨n', hn'⟩ := @Nat.exists_eq_add_of_le' doe.succ (k * 1460 + (k - 4)) (by omega)
-          exact ⟨n', by omega⟩
-        have : doy = 364 - n := by
-          rw [hdoy, hyoe, hk, hn.right]
-          exact doe_eq_364_sub_3 k n hn.left (by omega) rfl
-        omega)
-
-theorem doy_of_doe_eq_365 {doe yoe doy : Nat} (hle1 : 36524 ≤ doe ∧ doe < 146096)
-  (hle2 : 0 ≤ doy ∧ doy ≤ 365) (hyoe : yoe = (doe - doe / 1460 + doe / 36524) / 365)
-  (hdoy : doy = doe - (365 * yoe + yoe / 4 - yoe / 100))
-    : doe % 1461 + doe / 36524 = 1460 ↔ doy = 365 := by
-  if h : doe < 2*36524
-  then
-    have := @doy_of_doe_eq_365_1 doe yoe doy (by omega) hle2 (by omega) (by omega)
-    omega
-  else if h : doe < 3*36524
-  then
-    have := @doy_of_doe_eq_365_2 doe yoe doy (by omega) hle2 (by omega) (by omega)
-    omega
-  else
-    have := @doy_of_doe_eq_365_3 doe yoe doy (by omega) hle2 (by omega) (by omega)
-    omega
-
-theorem doy_of_doe_lt_365 {doe yoe doy : Nat} (hle1 : 36524 ≤ doe ∧ doe < 146096)
-  (hle2 : 0 ≤ doy ∧ doy ≤ 365) (hyoe : yoe = (doe - doe / 1460 + doe / 36524) / 365)
-  (hdoy : doy = doe - (365 * yoe + yoe / 4 - yoe / 100)) (hne : doe % 1461 + doe / 36524 ≠ 1460)
-    : doy < 365 := by
-  have himp := doy_of_doe_eq_365 hle1 hle2 hyoe hdoy
-  omega
 
 theorem doe_of_mod_lt_1 {doe yoe : Nat} (h : 36524 ≤ doe ∧ doe < 2*36524)
   (hyoe : yoe = (doe - doe / 1460 + 1) / 365) (hNot : ¬isLeapOfYearOfEra yoe)
@@ -618,6 +541,7 @@ theorem m_le {mp : Int} (hmp : 0 ≤ mp ∧ mp ≤ 11) (hm : m = mp + (if mp < 1
     : 1 ≤ m ∧ m ≤ 12 := by
   split at hm <;> simp_all <;> omega
 
+/-- From month based at january to month based at march. -/
 def month_to_mp (m : Month.Ordinal) :=
   if m.val < 3 then m.val + 9 else m.val - 3
 
@@ -636,15 +560,12 @@ protected theorem Array.get_eq_get_of_eq (a : Array α) (n m : Nat) (hn) (hm) (h
 
 namespace Notation
 
-declare_syntax_cat DaysEqDaysOfMp
-syntax num ws num ws num : DaysEqDaysOfMp
-syntax "daysEqDaysOfMp%" DaysEqDaysOfMp : term
+syntax "daysEqDaysOfMp%" num ws num ws num : term
 
 macro_rules
 | `(daysEqDaysOfMp% $m:num $mp:num $len:num) =>
     `((fun leapOfYear leapOfYearOfEra mp hm hmp => by
-    rw [Subtype.ext_iff]
-    simp []
+    simp
     have h : mp.toNat = $mp := by omega
     have h1 : $mp < (monthSizes leapOfYearOfEra).val.size := by
       simp [(monthSizes leapOfYearOfEra).property]
@@ -657,38 +578,20 @@ macro_rules
     rwa [h1, h2]
     : ∀ (leapOfYear leapOfYearOfEra : Bool) (mp : Int)
         (hm : $m = mp + if mp < 10 then 3 else -9) (hmp : 0 ≤ mp ∧ mp ≤ 11),
-          Month.Ordinal.days leapOfYear ⟨$m, by omega⟩
-          = ⟨(monthSizes leapOfYearOfEra).val.get mp.toNat
-              (by rw [(monthSizes leapOfYearOfEra).property]; omega),
-            by
-              have := monthSizesLeap_le leapOfYearOfEra mp.toNat (by omega)
-              exact And.intro (by simp_all; omega) (by norm_cast; simp_all)⟩
-          ))
+          (Month.Ordinal.days leapOfYear ⟨$m, by omega⟩).val
+          = (monthSizes leapOfYearOfEra).val.get mp.toNat
+              (by rw [(monthSizes leapOfYearOfEra).property]; omega)))
 
 end Notation
-
-def days_eq_days_of_mp_1 := daysEqDaysOfMp% 1 10 31
-def days_eq_days_of_mp_3 := daysEqDaysOfMp% 3 0 31
-def days_eq_days_of_mp_4 := daysEqDaysOfMp% 4 1 30
-def days_eq_days_of_mp_5 := daysEqDaysOfMp% 5 2 31
-def days_eq_days_of_mp_6 := daysEqDaysOfMp% 6 3 30
-def days_eq_days_of_mp_7 := daysEqDaysOfMp% 7 4 31
-def days_eq_days_of_mp_8 := daysEqDaysOfMp% 8 5 31
-def days_eq_days_of_mp_9 := daysEqDaysOfMp% 9 6 30
-def days_eq_days_of_mp_10 := daysEqDaysOfMp% 10 7 31
-def days_eq_days_of_mp_11 := daysEqDaysOfMp% 11 8 30
-def days_eq_days_of_mp_12 := daysEqDaysOfMp% 12 9 31
 
 theorem days_eq_days_of_mp_2 (leapOfYear leapOfYearOfEra  : Bool) (mp : Int)
   (hm : 2 = mp + (if mp < 10 then 3 else -9)) (hmp : 0 ≤ mp ∧ mp ≤ 11)
   (hIsLeap : 10 ≤ mp → leapOfYearOfEra = leapOfYear)
-    : Month.Ordinal.days leapOfYear ⟨2, by omega⟩
-    = ⟨(monthSizes leapOfYearOfEra).val.get mp.toNat (by rw [(monthSizes leapOfYearOfEra).property]; omega),
-        by
-          have := monthSizesLeap_le leapOfYearOfEra mp.toNat (by omega)
-          exact And.intro (by simp_all; omega) (by norm_cast; simp_all)⟩ := by
-  rw [Subtype.ext_iff]
-  simp []
+    : (Month.Ordinal.days leapOfYear ⟨2, by omega⟩).val
+    = (monthSizes leapOfYearOfEra).val.get mp.toNat
+        (by rw [(monthSizes leapOfYearOfEra).property]; omega)
+         := by
+  simp
   have h : mp.toNat = 11 := by omega
   have h1 : 11 < (monthSizes leapOfYearOfEra).val.size := List.isSome_getElem?.mp rfl
   have h2 : mp.toNat < (monthSizes leapOfYearOfEra).val.size := lt_of_eq_of_lt h h1
@@ -712,6 +615,9 @@ theorem days_eq_days_of_mp (leapOfYear leapOfYearOfEra : Bool) (month : Month.Or
         by
           have := monthSizesLeap_le leapOfYearOfEra mp.toNat (by omega)
           exact And.intro (by simp_all; omega) (by norm_cast; simp_all)⟩ := by
+  rw [Subtype.ext_iff]
+  simp [Subtype.val]
+
   have : month = mp_to_month mp hmp' := by
     simp [mp_to_month]
     rw [Subtype.ext_iff, hm]
@@ -721,18 +627,18 @@ theorem days_eq_days_of_mp (leapOfYear leapOfYearOfEra : Bool) (month : Month.Or
   have : 1 ≤ month.val := by omega
   have : month.val ≤ 12 := by omega
   match month with
-  | ⟨1, _⟩ => exact days_eq_days_of_mp_1 leapOfYear leapOfYearOfEra mp hm hmp'
+  | ⟨1, _⟩ => exact (daysEqDaysOfMp% 1 10 31) leapOfYear leapOfYearOfEra mp hm hmp'
   | ⟨2, _⟩ => exact days_eq_days_of_mp_2 leapOfYear leapOfYearOfEra mp hm hmp' hIsLeap
-  | ⟨3, _⟩ => exact days_eq_days_of_mp_3 leapOfYear leapOfYearOfEra mp hm hmp'
-  | ⟨4, _⟩ => exact days_eq_days_of_mp_4 leapOfYear leapOfYearOfEra mp hm hmp'
-  | ⟨5, _⟩ => exact days_eq_days_of_mp_5 leapOfYear leapOfYearOfEra mp hm hmp'
-  | ⟨6, _⟩ => exact days_eq_days_of_mp_6 leapOfYear leapOfYearOfEra mp hm hmp'
-  | ⟨7, _⟩ => exact days_eq_days_of_mp_7 leapOfYear leapOfYearOfEra mp hm hmp'
-  | ⟨8, _⟩ => exact days_eq_days_of_mp_8 leapOfYear leapOfYearOfEra mp hm hmp'
-  | ⟨9, _⟩ => exact days_eq_days_of_mp_9 leapOfYear leapOfYearOfEra mp hm hmp'
-  | ⟨10, _⟩ => exact days_eq_days_of_mp_10 leapOfYear leapOfYearOfEra mp hm hmp'
-  | ⟨11, _⟩ => exact days_eq_days_of_mp_11 leapOfYear leapOfYearOfEra mp hm hmp'
-  | ⟨12, _⟩ => exact days_eq_days_of_mp_12 leapOfYear leapOfYearOfEra mp hm hmp'
+  | ⟨3, _⟩ => exact (daysEqDaysOfMp% 3 0 31) leapOfYear leapOfYearOfEra mp hm hmp'
+  | ⟨4, _⟩ => exact (daysEqDaysOfMp% 4 1 30) leapOfYear leapOfYearOfEra mp hm hmp'
+  | ⟨5, _⟩ => exact (daysEqDaysOfMp% 5 2 31) leapOfYear leapOfYearOfEra mp hm hmp'
+  | ⟨6, _⟩ => exact (daysEqDaysOfMp% 6 3 30) leapOfYear leapOfYearOfEra mp hm hmp'
+  | ⟨7, _⟩ => exact (daysEqDaysOfMp% 7 4 31) leapOfYear leapOfYearOfEra mp hm hmp'
+  | ⟨8, _⟩ => exact (daysEqDaysOfMp% 8 5 31) leapOfYear leapOfYearOfEra mp hm hmp'
+  | ⟨9, _⟩ => exact (daysEqDaysOfMp% 9 6 30) leapOfYear leapOfYearOfEra mp hm hmp'
+  | ⟨10, _⟩ => exact (daysEqDaysOfMp% 10 7 31) leapOfYear leapOfYearOfEra mp hm hmp'
+  | ⟨11, _⟩ => exact (daysEqDaysOfMp% 11 8 30) leapOfYear leapOfYearOfEra mp hm hmp'
+  | ⟨12, _⟩ => exact (daysEqDaysOfMp% 12 9 31) leapOfYear leapOfYearOfEra mp hm hmp'
 
 theorem doy_from_month_le (n m day : Nat) (heq : 5 * day + 2 = m) (h : n = m / 153)
     : doy_from_month n ≤ day := by
@@ -810,27 +716,6 @@ theorem doy_sub_le (mp doy : Int) (leap : Bool) (hmp : mp = month_from_doy doy)
     · have : doy + 1 ≤ 366 := by omega
       simp
       omega
-
-/--
-Proof that the date `(year, month, day)` of `ofDaysSinceUNIXEpoch'` is valid.
--/
-theorem ofDaysSinceUNIXEpochIsValid (year : Year.Offset) (month : Month.Ordinal) (day : Day.Ordinal)
-  (mp doy : Int) (isLeapOfYearOfEra : Bool)
-  (hmp : mp = month_from_doy doy)
-  (hm : month.val = mp + (if mp < 10 then 3 else -9))
-  (hd : day.val = doy - (doy_from_month mp) + 1)
-  (hdoy : 0 ≤ doy ∧ (if isLeapOfYearOfEra then doy ≤ 365 else doy ≤ 364))
-  (hmp' : 0 ≤ mp ∧ mp ≤ 11)
-  (hIsLeap : 10 ≤ mp → isLeapOfYearOfEra = year.isLeap)
-    : day ≤ month.days year.isLeap := by
-  rw [days_eq_days_of_mp year.isLeap isLeapOfYearOfEra month mp hm hmp' hIsLeap]
-  have hp := day.property
-  have : day = ⟨doy - (doy_from_month mp) + 1, And.intro (by omega) (by omega)⟩ := by
-    rw [Subtype.ext_iff]
-    exact hd
-  rw [this]
-  have := doy_sub_le mp doy isLeapOfYearOfEra hmp hmp' (by split at hdoy <;> simp_all)
-  norm_cast
 
 theorem mod_4_zero_of_add_iff (era : Int) (yoe : Nat)
     : (yoe + 1) % 4 = 0 ↔ (yoe + 1 + era * 400).tmod 4 = 0  := by
@@ -910,6 +795,37 @@ private theorem m_to_mp (m mp y y' : Int) (hm : y = y' + (if m <= 2 then 1 else 
   rwa [this] at hm
 
 /--
+Proof that the date `(year, month, day)` of `ofDaysSinceUNIXEpoch'` is valid.
+-/
+theorem isValid (year : Year.Offset) (month : Month.Ordinal) (day : Day.Ordinal)
+  {era yoe doy y' mp : Int}
+  (hyoe : 0 ≤ yoe ∧ yoe ≤ 399 )
+  (hdoy : 0 ≤ doy ∧ (if isLeapOfYearOfEra yoe.toNat then doy ≤ 365 else doy ≤ 364))
+  (hmp' : 0 ≤ mp ∧ mp ≤ 11)
+  (hmp : mp = month_from_doy doy)
+  (hy' : y' = yoe + era * 400)
+  (hm : month.val = mp + (if mp < 10 then 3 else -9))
+  (hd : day.val = doy - (doy_from_month mp) + 1)
+  (hy : year.toInt = y' + (if month.val <= 2 then 1 else 0))
+    : day ≤ month.days year.isLeap := by
+  have hIsLeap : 10 ≤ mp → isLeapOfYearOfEra yoe.toNat = year.isLeap :=
+    is_leap_of_year_of_era_eq_is_leap_of_year era yoe mp y' year hyoe
+          hy' (m_to_mp month.val mp year y' hy hmp' hm)
+  rw [days_eq_days_of_mp year.isLeap (isLeapOfYearOfEra yoe.toNat) month mp hm hmp' hIsLeap]
+  have hp := day.property
+  have : day = ⟨doy - (doy_from_month mp) + 1, And.intro (by omega) (by omega)⟩ := by
+    rw [Subtype.ext_iff]
+    exact hd
+  rw [this]
+  have := doy_sub_le mp doy (isLeapOfYearOfEra yoe.toNat) hmp hmp' (by split at hdoy <;> simp_all)
+  norm_cast
+
+end Verification
+
+
+open Verification in
+
+/--
 Create a date from the number of days since the UNIX epoch (January 1st, 1970)
 and prove that the date is a valid `PlainDate`,
 see
@@ -934,11 +850,7 @@ def ofDaysSinceUNIXEpoch' (day : Day.Offset) : PlainDate :=
   let m := mp + (if mp < 10 then 3 else -9)
   have hm : 1 ≤ m ∧ m ≤ 12 := m_le hmp rfl
   let y := y' + (if m <= 2 then 1 else 0)
-  ⟨y, ⟨m, hm⟩, ⟨d, hd⟩,
-    ofDaysSinceUNIXEpochIsValid y ⟨m, hm⟩ ⟨d, hd⟩ mp doy (isLeapOfYearOfEra yoe.toNat)
-      rfl rfl rfl hdoy hmp
-      (is_leap_of_year_of_era_eq_is_leap_of_year era yoe mp y' y hyoe
-          rfl (m_to_mp m mp y y' rfl hmp rfl))⟩
+  ⟨y, ⟨m, hm⟩, ⟨d, hd⟩, isValid y ⟨m, hm⟩ ⟨d, hd⟩ hyoe hdoy hmp rfl rfl rfl rfl rfl⟩
 
 example : PlainDate.ofDaysSinceUNIXEpoch (-719468) =  ⟨0, 3, 1, by decide⟩ := rfl
 example : ofDaysSinceUNIXEpoch' (-719468) =  ⟨0, 3, 1, by decide⟩ := rfl
