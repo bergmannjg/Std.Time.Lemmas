@@ -1,5 +1,3 @@
-[["docBlame", "Std.Time.Verification.isLeapOfYearOfEras"],
- ["docBlame", "Std.Time.Verification.mp_to_month"],
- ["docBlame", "Std.Time.Verification.Notation.«termDaysEqDaysOfMp%_____»"],
+[["docBlame", "Std.Time.Verification.Notation.«termDaysEqDaysOfMp%_____»"],
  ["docBlame", "Std.Time.Verification.Notation.«termDoeEq364Sub%_____»"],
  ["docBlame", "Std.Time.Verification.Notation.«termDoyOfDoeEq%___________»"]]
