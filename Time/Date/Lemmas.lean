@@ -70,7 +70,6 @@ theorem to_index_from_shifted_eq (leap : Bool) (mp : Int) (month : Time.Month.Or
     = (⟨(month_from_shifted_month mp - 1).toNat, by
           have := m_le h hm
           have := (ordinalMonthSizes leap).property
-          have := (monthSizes leap).property
           omega⟩ : Fin ((ordinalMonthSizes leap).val.size))  := by
   simp [toIndex, month_from_shifted_month, hm]
   split <;> omega
