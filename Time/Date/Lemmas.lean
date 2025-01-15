@@ -307,62 +307,61 @@ theorem yoe_le {doe yoe : Int} (hdoe : 0 ≤ doe ∧ doe ≤ 146096)
 def isLeapOfYearOfEra (yoe : Nat) : Bool :=
   (yoe + 1) % 4 = 0 ∧ ((yoe + 1) % 100 ≠ 0 ∨ (yoe + 1) % 400 = 0)
 
-namespace Notation
+theorem doyEq364Sub (i i1 i2 : Nat) (doy k n : Nat)
+  (h : n ≤ k - 2 - i)
+  (hk :  i1 ≤ k ∧ k < i2)
+  (hdoy : doy = k * 1460 + (k - 2 - i) - n
+                - (365 * ((k * 1460 + (k - 2 - i) - n - k + i) / 365)
+                  + (k * 1460 + (k - 2 - i) - n - k + i) / 365 / 4 - i))
+    : (i = 0 ∧ i1 = 2 ∧ i2 = 25
+       ∨ i = 1 ∧ i1 = 25 ∧ i2 = 50
+       ∨ i = 2 ∧ i1 = 50 ∧ i2 = 75
+       ∨ i = 3 ∧ i1 = 75 ∧ i2 = 100) →
+      doy = 364 - n := by
+  intro hi
+  have : (k * 1460 + (k - 2 - i) - n - k + i) = (k * 1460 - n - 2) := by omega
+  omega
 
-syntax "doeEq364Sub%" num ws num ws num : term
-
-macro_rules
-| `(doeEq364Sub% $k:num $k1:num $k2:num) =>
-    `((fun {doe} k n h hk hdoe => by
-    rw [hdoe]
-    have : (k * 1460 + (k - 2 - $k) - n - k + $k) = (k * 1460 - n - 2) := by omega
-    rw [this]
-    have : 365 * ((k * 1460 - n - 2) / 365) = k * 1460 - n - 2 - 363 + n := by omega
-    rw [this]
-    omega
-    : ∀ {doe : Nat} (k n : Nat),
-            n ≤ k - 2 - $k →
-            $k1 ≤ k ∧ k < $k2 →
-            doe = k * 1460 + (k - 2 - $k) - n
-                    - (365 * ((k * 1460 + (k - 2 - $k) - n - k + $k) / 365)
-                       + (k * 1460 + (k - 2 - $k) - n - k + $k) / 365 / 4 - $k) →
-            doe = 364 - n))
-
-syntax "doyOfDoeEq%" num ws num ws num ws num ws num ws num : term
-
-macro_rules
-| `(doyOfDoeEq% $k:num $k1:num $k2:num $n1:num $n2:num $n3:num) =>
-    `((fun doe yoe doy hle1 hle2 hyoe hdoy =>
-    Iff.intro
-      (fun h => by omega)
-      (fun h => by
-        generalize hk : doe / 1460 = k at h
-        if doe = k * 1460 + (k - 1) ∨ doe = k * 1460 + (k - $n1) ∨ doe = k * 1460 + (k - $n2)
-            ∨ doe = k * 1460 + (k - $n3)
-        then omega
-        else
-          have ⟨n, hn⟩ : ∃ (n : Nat), n ≤ k - 2 - $k ∧ doe = k * 1460 + (k - 2 - $k) - n := by
-            have ⟨n', hn'⟩ := @Nat.exists_eq_add_of_le' doe.succ (k * 1460 + (k - 1 - $k)) (by omega)
-            exact ⟨n', by omega⟩
-          have : doy = 364 - n := by
-            rw [hdoy, hyoe, hk, hn.right]
-            exact (doeEq364Sub% $k:num $k1 $k2) k n hn.left (by omega) rfl
-          omega)
-    : ∀ (doe yoe doy : Nat),
-            $k * 36524 ≤ doe ∧ doe < ($k + 1) * 36524 →
-            0 ≤ doy ∧ doy ≤ 365 →
-            yoe = (doe - doe / 1460 + $k) / 365 →
-            doy = doe - (365 * yoe + yoe / 4 - $k) →
-            (doe % 1461 + $k = 1460 ↔ doy = 365)))
-
-end Notation
+theorem doyOfDoeEq (i i1 i2 : Nat) (doe yoe doy : Nat)
+  (hle1 : i * 36524 ≤ doe ∧ doe < (i + 1) * 36524)
+  (hle2 : 0 ≤ doy ∧ doy ≤ 365)
+  (hyoe : yoe = (doe - doe / 1460 + i) / 365)
+  (hdoy : doy = doe - (365 * yoe + yoe / 4 - i))
+    : (i = 0 ∧ i1 = 2 ∧ i2 = 25
+       ∨ i = 1 ∧ i1 = 25 ∧ i2 = 50
+       ∨ i = 2 ∧ i1 = 50 ∧ i2 = 75
+       ∨ i = 3 ∧ i1 = 75 ∧ i2 = 100) →
+      (doe % 1461 + i = 1460 ↔ doy = 365) := by
+  intro hi
+  rcases hi with hi | hi | hi | hi
+  <;> exact Iff.intro
+        (fun h => by omega)
+        (fun h => by
+          generalize hk : doe / 1460 = k at h
+          let n1 := if i = 0 then 1 else 2
+          let n2 := if i = 0 then 1 else if i = 1 then 2 else 3
+          let n3 := if i = 0 then 1 else if i = 1 then 2 else if i = 1 then 3 else 4
+          if h : doe = k * 1460 + (k - 1) ∨ doe = k * 1460 + (k - n1) ∨ doe = k * 1460 + (k - n2)
+              ∨ doe = k * 1460 + (k - n3)
+          then
+            simp [n1, n2, n3, hi] at h
+            omega
+          else
+            simp [n1, n2, n3, hi] at h
+            have ⟨n, hn⟩ : ∃ (n : Nat), n ≤ k - 2 - i ∧ doe = k * 1460 + (k - 2 - i) - n := by
+              have ⟨n', hn'⟩ := @Nat.exists_eq_add_of_le' doe.succ (k * 1460 + (k - 1 - i)) (by omega)
+              exact ⟨n', by omega⟩
+            have : doy = 364 - n := by
+              rw [hyoe, hk, hn.right] at hdoy
+              exact doyEq364Sub i i1 i2 doy k n hn.left (by omega) hdoy (by omega)
+            omega)
 
 theorem doy_of_doe_lt_365_0 {doe yoe doy : Nat} (hle1 : 0 ≤ doe ∧ doe < 36524)
   (hle2 : 0 ≤ doy ∧ doy ≤ 365)
   (hyoe : yoe = (doe - doe / 1460) / 365) (hdoy : doy = doe - (365 * yoe + yoe / 4))
   (hlt : doe % 1461 < 1460)
     : doy < 365 := by
-  have := (doyOfDoeEq% 0 2 25 1 1 1) doe yoe doy hle1 hle2 hyoe hdoy
+  have := doyOfDoeEq 0 2 25 doe yoe doy hle1 hle2 hyoe hdoy (by simp)
   omega
 
 theorem not_isLeapOfYearOfEra {yoe : Nat} (h : ¬isLeapOfYearOfEra yoe)
@@ -377,14 +376,14 @@ theorem doy_of_doe_eq_365 {doe yoe doy : Nat} (hle1 : 36524 ≤ doe ∧ doe < 14
     : doe % 1461 + doe / 36524 = 1460 ↔ doy = 365 := by
   if h : doe < 2*36524
   then
-    have :=  (doyOfDoeEq% 1 25 50 2 2 2) doe yoe doy (by omega) hle2 (by omega) (by omega)
+    have :=  doyOfDoeEq 1 25 50 doe yoe doy (by omega) hle2 (by omega) (by omega) (by simp)
     omega
   else if h : doe < 3*36524
   then
-    have := (doyOfDoeEq% 2 50 75 2 3 3) doe yoe doy (by omega) hle2 (by omega) (by omega)
+    have := doyOfDoeEq 2 50 75 doe yoe doy (by omega) hle2 (by omega) (by omega) (by simp)
     omega
   else
-    have := (doyOfDoeEq% 3 75 100 2 3 4) doe yoe doy (by omega) hle2 (by omega) (by omega)
+    have := doyOfDoeEq 3 75 100 doe yoe doy (by omega) hle2 (by omega) (by omega) (by simp)
     omega
 
 theorem doy_of_doe_lt_365 {doe yoe doy : Nat} (hle1 : 36524 ≤ doe ∧ doe < 146096)
