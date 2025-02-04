@@ -35,7 +35,7 @@ protected theorem succ_le_div_mul (n w : Nat)
 
   rw [Nat.div_mul_eq_sub_mod n (w + 1)]
   have : n % (w + 1) ≤ w := by
-    have : n % (w + 1) < w + 1 := Nat.mod_lt n (by simp)
+    have : n % (w + 1) < w + 1 := Nat.mod_lt n (zero_lt_succ w)
     exact le_of_lt_succ this
   omega
 
@@ -44,6 +44,5 @@ protected theorem div_mul_lt {a b n : Nat} (hlt : 0 < b) (h : a / b = n)
   simp [(@Nat.le_div_iff_mul_le b n a hlt).mp (Nat.le_of_eq (id (Eq.symm h)))]
   simp [(@Nat.div_lt_iff_lt_mul b a (n+1) hlt).mp (by omega)]
 
-protected theorem div_eq_zero_lt {a b : Nat} (hlt : 0 < b) (hzero : a / b = 0) : a < b := by
-  have := @Nat.div_mul_lt a b 0 hlt
-  simp_all
+protected theorem div_eq_zero_lt {a b : Nat} (hlt : 0 < b) (hzero : a / b = 0) : a < b :=
+  lt_of_div_eq_zero hlt hzero

@@ -51,9 +51,7 @@ protected theorem tdiv_sub_add_eq_div_sub_add {a b c d e : Nat}
       exact Int.ofNat_inj.mp heq
     simp_all
   · contradiction
-  · rename_i heq _
-    rw [heq] at hle
-    contradiction
+  · omega
   · contradiction
 
 protected theorem tdiv_sub_eq_div_sub {a b c d : Nat}
@@ -79,21 +77,10 @@ protected theorem le_div_tdiv_of_nat {a b c : Nat} (h : a ≤ b / c)
   omega
 
 protected theorem neg_ofNat_eq_negSucc {n : Nat} (hlt : 0 < n) : -(n : Int) = -[n - 1+1] := by
-  generalize h : n - 1 = n'
-  have : n'.succ = n := by simp [h]; omega
-  rw [← this]
-  rfl
+  omega
 
-protected theorem sub_eq_add_of_int (n w m' : Nat) (hlt : 0 < w)
-  (heq : -[n +1]  - ↑w = -[m' +1])
+protected theorem sub_eq_add_of_int (n w m' : Nat) (heq : -[n +1]  - ↑w = -[m' +1])
     : n + w = m' := by
-  have h : Int.negSucc n - ↑w = Int.add (Int.negSucc n) (Int.negSucc (w - 1)) := by
-    have := Int.neg_ofNat_eq_negSucc hlt
-    have : Int.negSucc n - ↑w = Int.negSucc n + Int.negSucc (w - 1) := by omega
-    exact this
-  have : Int.negSucc n - ↑w = Int.negSucc (Nat.succ (n + (w - 1))) := h
-  rw [this] at heq
-  have := Int.negSucc_inj.mp heq
   omega
 
 protected theorem sub_tdiv_mul_le (a b : Int) (ha : a < 0) (hb : 1 < b)
@@ -103,16 +90,13 @@ protected theorem sub_tdiv_mul_le (a b : Int) (ha : a < 0) (hb : 1 < b)
     rename_i w h
     simp [tdiv, instHDiv, Nat.instDiv]
     split <;> simp_all
-    · rename_i heq _
-      have : Int.negSucc n - w < 0 := by omega
-      rw [heq] at this
-      contradiction
+    · omega
     · contradiction
     · rename_i m' n' heq' heq
       have : Int.neg (Int.negSucc n) ≤ (↑((m' + 1).div n') * (↑w + 1)) := by
         have : Int.neg (Int.negSucc n) = Nat.succ n := rfl
         rw [this, ← h]
-        have h1 : n + w = m' := Int.sub_eq_add_of_int n w m' (by omega) heq'
+        have h1 : n + w = m' := Int.sub_eq_add_of_int n w m' heq'
         have h2 : n' = w + 1 := by omega
         rw [← h1, h2]
         have := Nat.succ_le_div_mul n w
@@ -127,16 +111,11 @@ protected theorem le_sub_tdiv_mul (a b : Int) (ha : a < 0) (hb : 1 < b)
     rename_i w h
     simp [tdiv, instHDiv, Nat.instDiv]
     split <;> simp_all
-    · rename_i m' n' heq _
-      have : Int.negSucc n - w < 0 := by omega
-      rw [heq] at this
-      contradiction
+    · omega
     · contradiction
     · rename_i m' n' heq' heq
       have : ↑((m' + 1).div n') * (↑w + 1) ≤ Int.neg (Int.negSucc m') := by
-        have : Int.neg (Int.negSucc m') = Nat.succ m' := by
-          unfold Int.neg
-          split <;> simp_all
+        have : Int.neg (Int.negSucc m') = Nat.succ m' := rfl
         rw [this, ← h]
         have : (m' + 1).div n' * n' ≤ m'.succ := by
           rw [Nat.div_mul_eq_sub_mod (m' + 1) n']
@@ -159,11 +138,9 @@ protected theorem mod_zero_of_add_mul_eq_iff (a b c : Int)
     have h1 := Int.dvd_iff_tmod_eq_zero.mpr h
     have h2 := Int.dvd_mul_right c b
     have h3 := Int.dvd_add h1 h2
-    have := Int.dvd_iff_tmod_eq_zero.mp h3
-    exact this)
+    exact Int.dvd_iff_tmod_eq_zero.mp h3)
   (fun h => by
     have h1 := Int.dvd_iff_tmod_eq_zero.mpr h
     have h2 := Int.dvd_mul_right c b
     have h3 := (@Int.dvd_add_left c a (c * b) h2).mp h1
-    have := (@Int.dvd_iff_tmod_eq_zero c a).mp h3
-    exact this)
+    exact (@Int.dvd_iff_tmod_eq_zero c a).mp h3)

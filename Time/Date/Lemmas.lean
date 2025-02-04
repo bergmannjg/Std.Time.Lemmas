@@ -21,10 +21,10 @@ open Std.Time Int
 
 /-- monthSizes of year starting at month 1, see `Time.Month.Ordinal`. -/
 def ordinalMonthSizes (leap : Bool) : { val : Array Day.Ordinal // val.size = 12 } :=
-  ⟨#[31, if leap then 29 else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31], by cases leap <;> decide⟩
+  ⟨#[31, if leap then 29 else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31], rfl⟩
 
 def toIndex (month : Time.Month.Ordinal) : Fin ((ordinalMonthSizes leap).val.size) :=
-  (month.sub 1).toFin (by decide)
+  (month.sub 1).toFin (Int.le_refl 0)
 
 theorem ordinalMonthSizes_eq_days (leap : Bool)
     : ∀ month : Time.Month.Ordinal,
@@ -271,7 +271,6 @@ theorem yoe_le_of_doe_lt_146096 {doe yoe : Int} (hdoe : 36524 ≤ doe ∧ doe �
         rw [← Int.ofNat_inj.mp hn'] at heq
         have : 0 ≤ Int.ofNat m' - Int.ofNat (m' / 1460) + Int.ofNat (m' / 36524) := hzero
         rwa [heq] at this
-      have := Int.negSucc_lt_zero m''
       omega
     · contradiction
     · contradiction
@@ -480,7 +479,7 @@ theorem doy_le {doe yoe doy : Int} (hdoe : 0 ≤ doe ∧ doe ≤ 146096)
         have hyd := @yoe_of_doe_lt_146096 doe yoe (by omega) heq
         have hm : yoe = (doe - doe / 1460 + doe / 36524) / 365  :=
                    Int.tdiv_sub_add_eq_div_sub_add hyd.left (by simp [Int.tdiv]; omega)
-        have : yoe / 100 = doe / 36524 := by rw [hm, Nat.div_div_eq_div_mul]; omega
+        have : yoe / 100 = doe / 36524 := by omega
         simp only [ofNat_eq_coe, Nat.cast_ofNat_Int] at hdoy
         split
         · omega
@@ -500,8 +499,7 @@ theorem doy_le {doe yoe doy : Int} (hdoe : 0 ≤ doe ∧ doe ≤ 146096)
         have : doe ≤ 146096 := Int.ofNat_le.mp hdoe.right
         omega
   · contradiction
-  · have := hyoe.left
-    contradiction
+  · omega
   · contradiction
 
 theorem mp_of_nat_le {doy mp m : Nat} (hdoy : 0 ≤ ofNat doy ∧ ofNat doy ≤ 365)
@@ -524,7 +522,7 @@ theorem mp_le {doy mp : Int} (hdoy : 0 ≤ doy ∧ doy ≤ 365) (hmp : mp = mont
     match doy, mp with
     | ofNat doy, ofNat mp => exact mp_of_nat_le hdoy (Int.ofNat_inj.mp hmp) (Int.ofNat_inj.mp heq)
   · contradiction
-  · match doy with | ofNat _ => contradiction
+  · omega
   · contradiction
 
 theorem d_le' {d : Int} {doy mp m' m'' n' n'' : Nat}
@@ -569,14 +567,14 @@ theorem d_le {doy mp d : Int} (hdoy : 0 ≤ doy ∧ doy ≤ 365) (hle : 0 ≤ mp
                       (And.intro (Int.ofNat_le.mp hle.left) (Int.ofNat_le.mp hle.right))
                       hd (Int.ofNat_inj.mp hn')
     · contradiction
-    · match doy with | ofNat _ => contradiction
+    · omega
     · contradiction
   · contradiction
   · rename_i heq _
     split at heq
     · contradiction
     · contradiction
-    · match doy with | ofNat _ => contradiction
+    · omega
     · contradiction
   · contradiction
 
@@ -594,7 +592,7 @@ theorem mp_to_month_of_mp_to_month_eq_id (mp : Int ) (hmp : 0 ≤ mp ∧ mp ≤ 
   omega
 
 protected theorem Array.get_eq_get_of_eq (a : Array α) (n m : Nat) (hn) (hm) (h : n = m)
-    : a[n]'hn = a[m]'hm := getElem_congr h
+    : a[n]'hn = a[m]'hm := getElem_congr rfl h hn
 
 theorem days_eq_days_of_mp_2 (leapOfYear leapOfYearOfEra  : Bool) (mp : Int)
   (hm : 2 = month_from_shifted_month mp) (hmp : 0 ≤ mp ∧ mp ≤ 11)
@@ -606,7 +604,8 @@ theorem days_eq_days_of_mp_2 (leapOfYear leapOfYearOfEra  : Bool) (mp : Int)
   simp [month_from_shifted_month] at hm
   simp
   have h : mp.toNat = 11 := by omega
-  have h1 : 11 < (monthSizes leapOfYearOfEra).val.size := List.isSome_getElem?.mp rfl
+  have h1 : 11 < (monthSizes leapOfYearOfEra).val.size :=
+    (isSome_getElem? (monthSizes leapOfYearOfEra).val 11).mp rfl
   have h2 : mp.toNat < (monthSizes leapOfYearOfEra).val.size := lt_of_eq_of_lt h h1
   rw [Array.get_eq_get_of_eq (monthSizes leapOfYearOfEra).val mp.toNat 11 h2 h1 h]
   have h1 : (monthSizes leapOfYearOfEra).val[11]'h1 = if leapOfYearOfEra then 29 else 28 := rfl
@@ -655,13 +654,7 @@ theorem days_eq_days_of_monthSizes (leapOfYear leapOfYearOfEra : Bool) (month : 
         have : mp ≤ 11 := ofNat_le.mp hmp'.right
         have h : mp < 11 := by
           simp [month_from_shifted_month] at hm
-          split at hm
-          · omega
-          · if m = 1
-            then omega
-            else
-              have : ¬ mp ≤ 11 := by omega
-              contradiction
+          omega
         have h := monthSizes_eq_ordinalMonthSizes leapOfYear leapOfYearOfEra ⟨mp, by
           have := (monthSizes leapOfYearOfEra).property
           omega⟩ h
@@ -671,8 +664,7 @@ theorem days_eq_days_of_monthSizes (leapOfYear leapOfYearOfEra : Bool) (month : 
         simp
         exact id (Eq.symm h)
       | negSucc _ =>
-        have := hmp'.left
-        contradiction
+        omega
 
 theorem doy_from_month_le (n m day : Nat) (heq : 5 * day + 2 = m) (h : n = m / 153)
     : doy_from_month n ≤ day := by
@@ -721,9 +713,7 @@ theorem month_from_doy_le (n : Nat) (doy : Int) (h : n = month_from_doy doy)
           (doy_from_next_month_le n m' day heq (by omega))
     | negSucc _ => contradiction
   · contradiction
-  · rename_i heq _
-    have : 5 * doy + 2 < 0 := by rw [heq]; exact Int.negSucc_lt_zero _
-    contradiction
+  · omega
   · contradiction
 
 theorem doy_sub_le (mp doy : Int) (leap : Bool) (hmp : mp = month_from_doy doy)
@@ -772,20 +762,18 @@ theorem mod_100_zero_of_add_iff (era : Int) (yoe : Nat)
       exact (Int.mod_zero_of_add_mul_eq_iff (yoe + 1) (era*4) 100).mp h)
     (fun h => by
       have := (Int.mod_zero_of_add_mul_eq_iff (yoe + 1) (era*4) 100).mpr h
-      have h : (yoe + 1) % 100 = 0 := ofNat_eq_zero.mp this
-      exact h)
+      exact ofNat_eq_zero.mp this)
 
 theorem mod_400_zero_of_add_iff (era : Int) (yoe : Nat)
     : (yoe + 1) % 400 = 0 ↔ (yoe + 1 + era * 400).tmod 400 = 0  := by
   rw [Int.mul_comm]
   exact Iff.intro
     (fun h => by
-      have h : ((yoe:Int) + 1).tmod 400 = 0 := by have := ofNat_tmod (yoe+1) 400; simp_all
+      have h : ((yoe:Int) + 1).tmod 400 = 0 := natAbs_eq_zero.mp h
       exact (Int.mod_zero_of_add_mul_eq_iff (yoe + 1) era 400).mp h)
     (fun h => by
       have := (Int.mod_zero_of_add_mul_eq_iff (yoe + 1) era 400).mpr h
-      have h : (yoe + 1) % 400 = 0 := by have := ofNat_tmod (yoe+1) 400; simp_all; omega
-      exact h)
+      exact ofNat_eq_zero.mp this)
 
 /-- Is leap year of year defined by  `era` and `yoe` starting at 0
 -/
@@ -849,8 +837,7 @@ theorem isValid (year : Year.Offset) (month : Month.Ordinal) (day : Day.Ordinal)
     rw [Subtype.ext_iff]
     exact hd
   rw [this]
-  have := doy_sub_le mp doy (isLeapOfYearOfEra yoe.toNat) hmp hmp' (by split at hdoy <;> simp_all)
-  norm_cast
+  exact doy_sub_le mp doy (isLeapOfYearOfEra yoe.toNat) hmp hmp' (by split at hdoy <;> simp_all)
 
 end Verification
 
