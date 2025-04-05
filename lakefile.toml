@@ -5,12 +5,12 @@ defaultTargets = ["Time"]
 [[require]]
 name = "batteries"
 git = "https://github.com/leanprover-community/batteries"
-rev = "v4.16.0"
+rev = "v4.17.0"
 
 [[require]]
 name = "tryAtEachStep"
 git = "https://github.com/dwrensha/tryAtEachStep"
-rev = "lean-v4.16.0"
+rev = "lean-v4.17.0"
 
 [[lean_lib]]
 name = "Time"
