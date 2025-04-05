@@ -125,9 +125,9 @@ protected theorem le_sub_tdiv_mul (a b : Int) (ha : a < 0) (hb : 1 < b)
     · contradiction
 
 protected theorem add_mul_tmod_self {a b c : Int} (ha : 0 ≤ a) (habc : 0 ≤ a + b * c)
-  (hb : 0 ≤ c) : (a + b * c).tmod c = a.tmod c := by
-  rw [Int.tmod_eq_emod habc hb, Int.tmod_eq_emod ha hb]
-  simp [Int.add_mul_emod_self]
+    : (a + b * c).tmod c = a.tmod c := by
+  rw [@Int.tmod_eq_emod (a + b * c) c, @Int.tmod_eq_emod a c]
+  simp_all [Int.add_mul_emod_self]
 
 protected theorem ofNat_eq_natCast (n : Nat) : Int.ofNat n = (n:Int) := rfl
 

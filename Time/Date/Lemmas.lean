@@ -105,13 +105,13 @@ theorem monthSizesLeap_eq_doy_from_month_sub (leap : Bool)
                       = if n < 11
                         then doy_from_month (n + 1) - doy_from_month n
                         else (if leap then 366 else 365) - doy_from_month n := by
-  cases leap <;> simp_arith [monthSizes, doy_from_month]
+  cases leap <;> simp +arith +decide [monthSizes, doy_from_month]
 
 theorem monthSizesLeap_le (leap : Bool)
     : ∀ (n : Nat) (h : n ≤ 11),
         28 ≤ (monthSizes leap).val[n]'(by exact Nat.lt_add_one_of_le h)
         ∧ (monthSizes leap).val[n]'(Nat.lt_add_one_of_le h) ≤ 31 := by
-  cases leap <;> simp_arith [monthSizes, doy_from_month]
+  cases leap <;> simp +arith +decide [monthSizes, doy_from_month]
 
 theorem doe_le (z era doe : Int)
   (hera : era = (if z ≥ 0 then z else z - 146096).tdiv 146097) (hdoe : doe = z - era * 146097)
@@ -181,7 +181,7 @@ theorem yoe_le_of_doe_lt_36524  {doe yoe : Int} (hdoe : 1460 ≤ doe ∧ doe ≤
     · rename_i heq' heq
       split at heq' <;> simp_all
       rw [← heq]
-      rename_i hn' _ _
+      rename_i hn' _
       rw [← hn'] at heq'
       omega
     · rename_i heq' heq
@@ -598,11 +598,10 @@ theorem days_eq_days_of_mp_2 (leapOfYear leapOfYearOfEra  : Bool) (mp : Int)
   (hm : 2 = month_from_shifted_month mp) (hmp : 0 ≤ mp ∧ mp ≤ 11)
   (hIsLeap : 10 ≤ mp → leapOfYearOfEra = leapOfYear)
     : (Month.Ordinal.days leapOfYear ⟨2, by omega⟩).val
-    = (monthSizes leapOfYearOfEra).val.get mp.toNat
+    = (monthSizes leapOfYearOfEra).val[mp.toNat]'
         (by rw [(monthSizes leapOfYearOfEra).property]; omega)
          := by
   simp [month_from_shifted_month] at hm
-  simp
   have h : mp.toNat = 11 := by omega
   have h1 : 11 < (monthSizes leapOfYearOfEra).val.size :=
     (isSome_getElem? (monthSizes leapOfYearOfEra).val 11).mp rfl
@@ -620,11 +619,11 @@ theorem days_eq_days_of_monthSizes (leapOfYear leapOfYearOfEra : Bool) (month : 
   (mp : Int) (hm : month.val = month_from_shifted_month mp)
   (hmp' : 0 ≤ mp ∧ mp ≤ 11) (hIsLeap : 10 ≤ mp → leapOfYearOfEra = leapOfYear)
     : Month.Ordinal.days leapOfYear month
-    = ⟨(monthSizes leapOfYearOfEra).val.get mp.toNat
+    = ⟨(monthSizes leapOfYearOfEra).val[mp.toNat]'
           (by rw [(monthSizes leapOfYearOfEra).property]; omega),
         by
           have := monthSizesLeap_le leapOfYearOfEra mp.toNat (by omega)
-          exact And.intro (by simp_all; omega) (by norm_cast; simp_all)⟩ := by
+          exact And.intro (by omega) (by norm_cast; simp_all)⟩ := by
 
   match month with
   | ⟨m, hm'⟩ =>
@@ -718,9 +717,8 @@ theorem month_from_doy_le (n : Nat) (doy : Int) (h : n = month_from_doy doy)
 
 theorem doy_sub_le (mp doy : Int) (leap : Bool) (hmp : mp = month_from_doy doy)
   (hmp' : 0 ≤ mp ∧ mp ≤ 11) (hdoy : 0 ≤ doy ∧ doy ≤ (if leap then 365 else 364))
-    : doy - doy_from_month mp + 1 ≤ (monthSizes leap).val.get mp.toNat
+    : doy - doy_from_month mp + 1 ≤ (monthSizes leap).val[mp.toNat]'
         (by rw [(monthSizes leap).property]; omega) := by
-  simp
   have hlt := month_from_doy_le mp.toNat doy (by omega) hdoy.left
   have hn : mp = (mp.toNat:Int) := by omega
   have := monthSizesLeap_eq_doy_from_month_sub leap (mp.toNat) (by omega)
