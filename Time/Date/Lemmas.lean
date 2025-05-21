@@ -17,7 +17,7 @@ namespace Std
 namespace Time
 namespace Verification
 
-open Std.Time Int
+open Std.Time
 
 /-- monthSizes of year starting at month 1, see `Time.Month.Ordinal`. -/
 def ordinalMonthSizes (leap : Bool) : { val : Array Day.Ordinal // val.size = 12 } :=
@@ -89,7 +89,8 @@ theorem monthSizes_eq_ordinalMonthSizes (leapOfYear leapOfYearOfEra : Bool)
   | ⟨0, _⟩ | ⟨1, _⟩ | ⟨2, _⟩ | ⟨3, _⟩ | ⟨4, _⟩ | ⟨5, _⟩
   | ⟨6, _⟩ | ⟨7, _⟩ | ⟨8, _⟩ | ⟨9, _⟩ | ⟨10, _⟩ => split <;> rfl
 
-theorem month_from_doy_of_nat_eq (doy mp : Nat) (heq : month_from_doy (ofNat doy) = ofNat mp)
+theorem month_from_doy_of_nat_eq (doy mp : Nat)
+  (heq : month_from_doy (Int.ofNat doy) = Int.ofNat mp)
     : (5 * doy + 2) / 153 = mp := by
   simp [month_from_doy, Int.tdiv] at heq
   split at heq
@@ -121,9 +122,9 @@ theorem doe_le (z era doe : Int)
   · rename_i h
     rw [Int.sub_tdiv_eq_tmod]
     have := @Int.tmod_lt_of_pos z 146097 (by simp)
-    have : z.tmod 146097 ≤ 146096 := lt_add_one_iff.mp this
+    have : z.tmod 146097 ≤ 146096 := Int.lt_add_one_iff.mp this
     simp [this]
-    exact tmod_nonneg 146097 h
+    exact Int.tmod_nonneg 146097 h
   · rename_i h
     have : (z - 146096).tdiv 146097 * 146097 ≤ z := Int.sub_tdiv_mul_le z 146097
               (Int.lt_of_not_ge h) (by omega)
@@ -144,11 +145,12 @@ theorem yoe_le_of_doe_lt_1460 {doe yoe : Int} (hdoe : 0 ≤ doe ∧ doe ≤ 1459
   (hyoe : yoe = yoe_from_doe doe)
     : 0 ≤ yoe ∧ yoe ≤ 3 := by
   have := yoe_of_doe_lt_1460 hdoe hyoe
-  have : 0 ≤ doe.tdiv 365 := @Int.tdiv_nonneg doe 365 hdoe.left (le.intro_sub (365 + 0) rfl)
+  have : 0 ≤ doe.tdiv 365 := @Int.tdiv_nonneg doe 365 hdoe.left (Int.le.intro_sub (365 + 0) rfl)
   have : doe.tdiv 365 ≤ 3 := by
     simp [Int.tdiv]
     split <;> simp_all
-    rename_i heq _
+    rename_i n heq _
+    have heq : 365 = n := by omega
     rw [← heq]
     omega
   omega
@@ -162,6 +164,7 @@ theorem yoe_of_doe_lt_36524  {doe yoe : Int} (hdoe : 1460 ≤ doe ∧ doe ≤ 36
     unfold Int.tdiv
     split <;> simp_all
     rename_i m n heq
+    have heq : 1460 = n := by omega
     rw [← heq]
     omega
   have : doe.tdiv 36524 = 0 := Int.tdiv_eq_zero_of_lt hle (by omega)
@@ -174,19 +177,19 @@ theorem yoe_le_of_doe_lt_36524  {doe yoe : Int} (hdoe : 1460 ≤ doe ∧ doe ≤
   have : 0 ≤ doe := by omega
   have := yoe_of_doe_lt_36524 hdoe hyoe
   have : 0 ≤ (doe - doe.tdiv 1460).tdiv 365 :=
-    @Int.tdiv_nonneg (doe - doe.tdiv 1460) 365 (by omega) (le.intro_sub (365 + 0) rfl)
+    @Int.tdiv_nonneg (doe - doe.tdiv 1460) 365 (by omega) (Int.le.intro_sub (365 + 0) rfl)
   have : (doe - doe.tdiv 1460).tdiv 365 ≤ 99 := by
     unfold Int.tdiv
     split <;> simp_all
-    · rename_i heq' heq
-      split at heq' <;> simp_all
-      rw [← heq]
-      rename_i hn' _
-      rw [← hn'] at heq'
-      omega
-    · rename_i heq' heq
-      rw [← heq]
-      omega
+    rename_i heq' heq
+    split at heq' <;> simp_all
+    rename_i n _ _ _ _ _ _
+    have heq : 365 = n := by omega
+    rw [← heq]
+    rename_i n' hn' _
+    have hn' : 1460 = n' := by omega
+    rw [← hn'] at heq'
+    omega
   omega
 
 theorem yoe_of_doe_lt_146096 {doe yoe : Int} (hdoe : 36524 ≤ doe ∧ doe ≤ 146095)
@@ -241,7 +244,7 @@ theorem yoe_le_of_doe_lt_146096 {doe yoe : Int} (hdoe : 36524 ≤ doe ∧ doe �
     have : 0 ≤ doe.tdiv 36524 := by match doe with | Int.ofNat _ => exact Int.tdiv_of_nat_le
     omega
   have : 0 ≤ (doe - doe.tdiv 1460 + doe.tdiv 36524).tdiv 365 :=
-      @Int.tdiv_nonneg (doe - doe.tdiv 1460 + doe.tdiv 36524) 365 hzero (le.intro_sub (365 + 0) rfl)
+      @Int.tdiv_nonneg (doe - doe.tdiv 1460 + doe.tdiv 36524) 365 hzero (Int.le.intro_sub (365 + 0) rfl)
   simp_all
 
   unfold Int.tdiv
@@ -267,7 +270,7 @@ theorem yoe_le_of_doe_lt_146096 {doe yoe : Int} (hdoe : 36524 ≤ doe ∧ doe �
   · rename_i heq _
     split at heq
     · rename_i m'' _ _ _ _ m' _ hn' _ _ _
-      have : 0 ≤ -[m'' +1] := by
+      have : 0 ≤ Int.negSucc m'' := by
         rw [← Int.ofNat_inj.mp hn'] at heq
         have : 0 ≤ Int.ofNat m' - Int.ofNat (m' / 1460) + Int.ofNat (m' / 36524) := hzero
         rwa [heq] at this
@@ -455,11 +458,11 @@ theorem doy_le {doe yoe doy : Int} (hdoe : 0 ≤ doe ∧ doe ≤ 146096)
   · rename_i yoe _ hn'
     rw [← Int.ofNat_inj.mp hn'] at hdoy
     match doe with
-    | ofNat doe =>
+    | Int.ofNat doe =>
       if doe < 1460
       then
-        have : yoe = doe / 365 := ofNat_inj.mp (@yoe_of_doe_lt_1460 doe yoe (by omega) heq)
-        simp only [ofNat_eq_coe, Nat.cast_ofNat_Int] at hdoy
+        have : yoe = doe / 365 := Int.ofNat_inj.mp (@yoe_of_doe_lt_1460 doe yoe (by omega) heq)
+        simp only [Int.ofNat_eq_coe] at hdoy
         split <;> omega
       else if h : doe < 36524
       then
@@ -467,7 +470,7 @@ theorem doy_le {doe yoe doy : Int} (hdoe : 0 ≤ doe ∧ doe ≤ 146096)
         have : yoe = (doe - doe / 1460) / 365  :=  Int.tdiv_sub_eq_div_sub hyd.left
                   (Int.sub_nonneg_of_le (Int.le_trans hyd.right (by omega)))
         have : yoe / 100 = 0 := by omega
-        simp only [ofNat_eq_coe, Nat.cast_ofNat_Int] at hdoy
+        simp only [Int.ofNat_eq_coe] at hdoy
         split
         · omega
         · rename_i h
@@ -480,7 +483,7 @@ theorem doy_le {doe yoe doy : Int} (hdoe : 0 ≤ doe ∧ doe ≤ 146096)
         have hm : yoe = (doe - doe / 1460 + doe / 36524) / 365  :=
                    Int.tdiv_sub_add_eq_div_sub_add hyd.left (by simp [Int.tdiv]; omega)
         have : yoe / 100 = doe / 36524 := by omega
-        simp only [ofNat_eq_coe, Nat.cast_ofNat_Int] at hdoy
+        simp only [Int.ofNat_eq_coe] at hdoy
         split
         · omega
         · rename_i h
@@ -490,7 +493,7 @@ theorem doy_le {doe yoe doy : Int} (hdoe : 0 ≤ doe ∧ doe ≤ 146096)
       else if h : doe = 146096
       then
         have : yoe = 399 := Int.ofNat_inj.mp (@yoe_le_of_doe_eq_146096 doe yoe (by omega) heq)
-        simp only [ofNat_eq_coe, Nat.cast_ofNat_Int] at hdoy
+        simp only [Int.ofNat_eq_coe] at hdoy
         split
         · omega
         · have : isLeapOfYearOfEra yoe = true := by simp [isLeapOfYearOfEra, this]
@@ -502,15 +505,14 @@ theorem doy_le {doe yoe doy : Int} (hdoe : 0 ≤ doe ∧ doe ≤ 146096)
   · omega
   · contradiction
 
-theorem mp_of_nat_le {doy mp m : Nat} (hdoy : 0 ≤ ofNat doy ∧ ofNat doy ≤ 365)
+theorem mp_of_nat_le {doy mp m : Nat} (hdoy : 0 ≤ Int.ofNat doy ∧ Int.ofNat doy ≤ 365)
   (hmp : mp = m / 153) (heq : 5 * doy + 2 = m)
-    : 0 ≤ ofNat mp ∧ ofNat mp ≤ 11 := by
-  have : 0 ≤ ofNat mp := Int.ofNat_le.mpr (Nat.zero_le mp)
+    : 0 ≤ Int.ofNat mp ∧ Int.ofNat mp ≤ 11 := by
   have : mp ≤ 11 := by
     rw [← heq] at hmp
     have : doy ≤ 365 := Int.ofNat_le.mp hdoy.right
     omega
-  have : ofNat mp ≤ 11 := Int.ofNat_le.mpr this
+  have : Int.ofNat mp ≤ 11 := Int.ofNat_le.mpr this
   simp_all
 
 theorem mp_le {doy mp : Int} (hdoy : 0 ≤ doy ∧ doy ≤ 365) (hmp : mp = month_from_doy doy)
@@ -520,7 +522,7 @@ theorem mp_le {doy mp : Int} (hdoy : 0 ≤ doy ∧ doy ≤ 365) (hmp : mp = mont
   · rename_i m' n' heq hn
     rw [← Int.ofNat_inj.mp hn] at hmp
     match doy, mp with
-    | ofNat doy, ofNat mp => exact mp_of_nat_le hdoy (Int.ofNat_inj.mp hmp) (Int.ofNat_inj.mp heq)
+    | Int.ofNat doy, Int.ofNat mp => exact mp_of_nat_le hdoy (Int.ofNat_inj.mp hmp) (Int.ofNat_inj.mp heq)
   · contradiction
   · omega
   · contradiction
@@ -528,7 +530,7 @@ theorem mp_le {doy mp : Int} (hdoy : 0 ≤ doy ∧ doy ≤ 365) (hmp : mp = mont
 theorem d_le' {d : Int} {doy mp m' m'' n' n'' : Nat}
   (heq : 153 * (m' / n') + 2 = m'') (hn' : 153 = n') (hm' : 5 * doy + 2 = m')
   (hmp : mp = (5 * doy + 2) / 153) (hle : 0 ≤ mp ∧ mp ≤ 11)
-  (hd : d = ofNat doy - ofNat (m'' / n'') + 1) (hn'' : 5 = n'')
+  (hd : d = Int.ofNat doy - Int.ofNat (m'' / n'') + 1) (hn'' : 5 = n'')
     : 1 ≤ d ∧ d ≤ 31 := by
   rw [← hn'] at heq
   rw [← hn''] at hd
@@ -560,7 +562,7 @@ theorem d_le {doy mp d : Int} (hdoy : 0 ≤ doy ∧ doy ≤ 365) (hle : 0 ≤ mp
     split at heq
     · rename_i m'' n'' hn' _ _ m' n' heq' hn
       match doy, mp with
-      | ofNat doy, ofNat mp =>
+      | Int.ofNat doy, Int.ofNat mp =>
         exact @d_le' d doy mp m' m'' n' n'' (Int.ofNat_inj.mp heq)
                       (Int.ofNat_inj.mp hn) (Int.ofNat_inj.mp heq')
                       (month_from_doy_of_nat_eq doy mp hmp.symm).symm
@@ -649,8 +651,8 @@ theorem days_eq_days_of_monthSizes (leapOfYear leapOfYearOfEra : Bool) (month : 
       rw [hx]
 
       match mp with
-      | ofNat mp =>
-        have : mp ≤ 11 := ofNat_le.mp hmp'.right
+      | Int.ofNat mp =>
+        have : mp ≤ 11 := Int.ofNat_le.mp hmp'.right
         have h : mp < 11 := by
           simp [month_from_shifted_month] at hm
           omega
@@ -662,7 +664,7 @@ theorem days_eq_days_of_monthSizes (leapOfYear leapOfYearOfEra : Bool) (month : 
         rw [Subtype.ext_iff]
         simp
         exact id (Eq.symm h)
-      | negSucc _ =>
+      | Int.negSucc _ =>
         omega
 
 theorem doy_from_month_le (n m day : Nat) (heq : 5 * day + 2 = m) (h : n = m / 153)
@@ -698,10 +700,10 @@ theorem month_from_doy_le (n : Nat) (doy : Int) (h : n = month_from_doy doy)
   split at h
   · rename_i m' n' heq _
     match h : doy with
-    | ofNat day =>
+    | Int.ofNat day =>
         rename_i heq' h'
         have hlt : n * 153 ≤ m' ∧ m' < (n+1) * 153 := by
-          have h : n = m' / n' := ofNat_inj.mp h'
+          have h : n = m' / n' := Int.ofNat_inj.mp h'
           simp [← Int.ofNat.inj heq'] at h
           omega
         simp
@@ -710,7 +712,7 @@ theorem month_from_doy_le (n : Nat) (doy : Int) (h : n = month_from_doy doy)
         exact And.intro
           (doy_from_month_le n m' day heq (by omega))
           (doy_from_next_month_le n m' day heq (by omega))
-    | negSucc _ => contradiction
+    | Int.negSucc _ => contradiction
   · contradiction
   · omega
   · contradiction
@@ -744,11 +746,11 @@ theorem mod_4_zero_of_add_iff (era : Int) (yoe : Nat)
   rw [← this]
   exact Iff.intro
     (fun h => by
-      have h : ((yoe:Int) + 1).tmod 4 = 0 := by exact natAbs_eq_zero.mp h
+      have h : ((yoe:Int) + 1).tmod 4 = 0 := by exact Int.natAbs_eq_zero.mp h
       exact (Int.mod_zero_of_add_mul_eq_iff (yoe + 1) (era*100) 4).mp h)
     (fun h => by
       have := (Int.mod_zero_of_add_mul_eq_iff (yoe + 1) (era*100) 4).mpr h
-      exact ofNat_eq_zero.mp this)
+      exact Int.ofNat_eq_zero.mp this)
 
 theorem mod_100_zero_of_add_iff (era : Int) (yoe : Nat)
     : (yoe + 1) % 100 = 0 ↔ (yoe + 1 + era * 400).tmod 100 = 0  := by
@@ -756,22 +758,22 @@ theorem mod_100_zero_of_add_iff (era : Int) (yoe : Nat)
   rw [← this]
   exact Iff.intro
     (fun h => by
-      have h : ((yoe:Int) + 1).tmod 100 = 0 := natAbs_eq_zero.mp h
+      have h : ((yoe:Int) + 1).tmod 100 = 0 := Int.natAbs_eq_zero.mp h
       exact (Int.mod_zero_of_add_mul_eq_iff (yoe + 1) (era*4) 100).mp h)
     (fun h => by
       have := (Int.mod_zero_of_add_mul_eq_iff (yoe + 1) (era*4) 100).mpr h
-      exact ofNat_eq_zero.mp this)
+      exact Int.ofNat_eq_zero.mp this)
 
 theorem mod_400_zero_of_add_iff (era : Int) (yoe : Nat)
     : (yoe + 1) % 400 = 0 ↔ (yoe + 1 + era * 400).tmod 400 = 0  := by
   rw [Int.mul_comm]
   exact Iff.intro
     (fun h => by
-      have h : ((yoe:Int) + 1).tmod 400 = 0 := natAbs_eq_zero.mp h
+      have h : ((yoe:Int) + 1).tmod 400 = 0 := Int.natAbs_eq_zero.mp h
       exact (Int.mod_zero_of_add_mul_eq_iff (yoe + 1) era 400).mp h)
     (fun h => by
       have := (Int.mod_zero_of_add_mul_eq_iff (yoe + 1) era 400).mpr h
-      exact ofNat_eq_zero.mp this)
+      exact Int.ofNat_eq_zero.mp this)
 
 /-- Is leap year of year defined by  `era` and `yoe` starting at 0
 -/

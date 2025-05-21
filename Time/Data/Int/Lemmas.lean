@@ -47,8 +47,9 @@ protected theorem tdiv_sub_add_eq_div_sub_add {a b c d e : Nat}
         rw [this]
         have := @Int.ofNat_sub (b / c) b (by exact Nat.div_le_self b c)
         simp_all
-      rw [this] at heq
-      exact Int.ofNat_inj.mp heq
+        omega
+      simp_all
+      exact Int.ofNat_inj.mp (by omega)
     simp_all
   · contradiction
   · omega
@@ -93,15 +94,27 @@ protected theorem sub_tdiv_mul_le (a b : Int) (ha : a < 0) (hb : 1 < b)
     · omega
     · contradiction
     · rename_i m' n' heq' heq
-      have : Int.neg (Int.negSucc n) ≤ (↑((m' + 1).div n') * (↑w + 1)) := by
+      norm_cast
+      norm_cast at h
+      have hle : Int.neg (Int.negSucc n) ≤ (↑((m' + 1).div n') * ↑(w + 1)) := by
         have : Int.neg (Int.negSucc n) = Nat.succ n := rfl
         rw [this, ← h]
         have h1 : n + w = m' := Int.sub_eq_add_of_int n w m' heq'
-        have h2 : n' = w + 1 := by omega
+        have h2 : n' = w + 1 := by norm_cast at h
         rw [← h1, h2]
         have := Nat.succ_le_div_mul n w
         omega
-      exact Int.neg_le_neg this
+
+      generalize ((m' + 1).div n' : Int) = x at hle
+      generalize w + 1 = y at hle
+
+      have : -(x * y) = -x * y := Int.neg_mul_eq_neg_mul x y
+      rw [← this]
+
+      have hn := Int.neg_le_neg hle
+      have : -[n+1] = - (-[n+1].neg) := rfl
+      rw [← this] at hn
+      exact hn
     · contradiction
 
 protected theorem le_sub_tdiv_mul (a b : Int) (ha : a < 0) (hb : 1 < b)
@@ -114,14 +127,24 @@ protected theorem le_sub_tdiv_mul (a b : Int) (ha : a < 0) (hb : 1 < b)
     · omega
     · contradiction
     · rename_i m' n' heq' heq
-      have : ↑((m' + 1).div n') * (↑w + 1) ≤ Int.neg (Int.negSucc m') := by
+      have hle : ↑((m' + 1).div n') * (↑w + 1) ≤ Int.neg (Int.negSucc m') := by
         have : Int.neg (Int.negSucc m') = Nat.succ m' := rfl
         rw [this, ← h]
         have : (m' + 1).div n' * n' ≤ m'.succ := by
           rw [Nat.div_mul_eq_sub_mod (m' + 1) n']
           omega
         omega
-      exact Int.neg_le_neg this
+
+      generalize ((m' + 1).div n' : Int) = x at hle
+      generalize ((w:Int) + 1) = y at hle
+
+      have hn := Int.neg_le_neg hle
+      have : -[m'+1] = - (-[m'+1].neg) := rfl
+      rw [← this] at hn
+
+      have : -(x * y) = -x * y := by exact Int.neg_mul_eq_neg_mul x y
+      rw [this] at hn
+      exact hn
     · contradiction
 
 protected theorem add_mul_tmod_self {a b c : Int} (ha : 0 ≤ a) (habc : 0 ≤ a + b * c)
