@@ -165,16 +165,22 @@ theorem yoe_of_doe_lt_36524  {doe yoe : Int} (hdoe : 1460 ≤ doe ∧ doe ≤ 36
   have : doe.tdiv 146096 = 0 := Int.tdiv_eq_zero_of_lt hle (by omega)
   simp_all
 
+theorem tdiv_of_sub_tdiv_le {a : Int} (h1 : 1460 ≤ a)  (h2: a ≤ 36523)
+    : (a - a.tdiv 1460).tdiv 365 ≤ 99 := by
+  suffices (a.toNat - a.toNat / 1460) / 365 ≤ 99 by
+    have h := @Int.tdiv_of_sub_tdiv_eq_ofNat a 365 1460 (by omega)
+    norm_cast at h
+    rw [h]
+    exact (@Int.ofNat_le ((a.toNat - a.toNat / 1460) / 365) 99).mpr this
+  omega
+
 theorem yoe_le_of_doe_lt_36524  {doe yoe : Int} (hdoe : 1460 ≤ doe ∧ doe ≤ 36523)
   (hyoe : yoe = yoe_from_doe doe)
     : 0 ≤ yoe ∧ yoe ≤ 99 := by
   have := yoe_of_doe_lt_36524 hdoe hyoe
   have : 0 ≤ (doe - doe.tdiv 1460).tdiv 365 :=
-    @Int.tdiv_nonneg (doe - doe.tdiv 1460) 365 (by omega) (Int.le.intro_sub (365 + 0) rfl)
-  have : (doe - doe.tdiv 1460).tdiv 365 ≤ 99 := by
-    have := @Int.tdiv_of_sub_tdiv_lt doe 365 4 100 (by omega) (by omega)
-              ⟨25, by omega⟩ (by omega) (by omega)
-    exact Int.le_iff_lt_add_one.mpr this
+    Int.tdiv_nonneg (by omega) (Int.le.intro_sub (365 + 0) rfl)
+  have := tdiv_of_sub_tdiv_le hdoe.left hdoe.right
   simp_all
 
 theorem yoe_of_doe_lt_146096 {doe yoe : Int} (hdoe : 36524 ≤ doe ∧ doe ≤ 146095)
@@ -186,14 +192,14 @@ theorem yoe_of_doe_lt_146096 {doe yoe : Int} (hdoe : 36524 ≤ doe ∧ doe ≤ 1
   simp [yoe_from_doe] at hyoe
   have : 0 ≤ doe := by omega
   have hlt : doe < 146096 := by omega
-  have : doe.tdiv 146096 = 0 := Int.tdiv_eq_zero_of_lt this hlt
+  have := Int.tdiv_eq_zero_of_lt this hlt
   simp_all
 
   have : 25 ≤ doe.tdiv 1460 := by
     match doe with
     | Int.ofNat _ =>
       rename_i a _
-      have h : 36524 ≤ a := Int.ofNat_le.mp hdoe.left
+      have : 36524 ≤ a := Int.ofNat_le.mp hdoe.left
       simp [Int.tdiv]
       omega
 
@@ -201,7 +207,7 @@ theorem yoe_of_doe_lt_146096 {doe yoe : Int} (hdoe : 36524 ≤ doe ∧ doe ≤ 1
     match doe with
     | Int.ofNat _ =>
       rename_i a _ _
-      have h : a < 146096 := Int.ofNat_le.mp hlt
+      have : a < 146096 := Int.ofNat_le.mp hlt
       have : a / 1460 ≤ 100 := by omega
       exact Int.div_le_tdiv_of_nat this
 
@@ -209,47 +215,20 @@ theorem yoe_of_doe_lt_146096 {doe yoe : Int} (hdoe : 36524 ≤ doe ∧ doe ≤ 1
     match doe with
     | Int.ofNat _ =>
       rename_i a _ _ _
-      have h : a < 146096 := Int.ofNat_le.mp (by simp; exact hlt)
+      have : a < 146096 := Int.ofNat_le.mp (by simp; exact hlt)
       have : a / 36524 ≤ 3 := by omega
       exact Int.div_le_tdiv_of_nat this
 
   simp_all
 
-theorem tdiv_of_sub_tdiv_add_tdiv_lt {a : Int} (h1 : 36524 ≤ a) (h2 : a < 146096)
-  (hzero : 0 ≤ a - a.tdiv 1460 + a.tdiv 36524) (hle : a.tdiv 36524 ≤ 3)
+theorem tdiv_of_sub_tdiv_add_tdiv_le {a : Int} (h1 : 36524 ≤ a) (h2 : a < 146096)
     : (a - a.tdiv 1460 + a.tdiv 36524).tdiv 365 ≤ 399 := by
-  unfold Int.tdiv
-  split
-  · rename_i m' n' heq hn
-    rw [← Int.ofNat_inj.mp hn]
-    split at heq
-    · rename_i m'' _ hn''
-      have : m' / 365 ≤ 399 := by
-        rw [← Int.ofNat_inj.mp hn''] at heq
-        rw [Int.of_nat_sub_add_eq (Nat.div_le_self m'' 1460)] at heq
-        have : m'' - m'' / 1460 + m'' / 36524 =  m' := Int.ofNat_inj.mp heq
-        have : m' < 146000 := by
-          rw [← this]
-          have : m'' / 36524 ≤ 3 := Int.tdiv_of_nat_le_div hle
-          omega
-        omega
-      exact Int.ofNat_le.mpr this
-    · contradiction
-    · contradiction
-    · contradiction
-  · contradiction
-  · rename_i heq _
-    split at heq
-    · rename_i m'' _ _ _ _ m' _ hn'
-      have : 0 ≤ Int.negSucc m'' := by
-        rw [← Int.ofNat_inj.mp hn'] at heq
-        have : 0 ≤ Int.ofNat m' - Int.ofNat (m' / 1460) + Int.ofNat (m' / 36524) := hzero
-        rwa [heq] at this
-      omega
-    · contradiction
-    · contradiction
-    · contradiction
-  · contradiction
+  suffices (a.toNat - a.toNat / 1460 + a.toNat / 36524) / 365 ≤ 399 by
+    have h := @Int.tdiv_of_sub_tdiv_add_tdiv_eq_ofNat 1460 36524 365 a (by omega)
+    norm_cast at h
+    rw [h]
+    exact Int.ofNat_le.mpr (by omega)
+  omega
 
 theorem yoe_le_of_doe_lt_146096 {doe yoe : Int} (hdoe : 36524 ≤ doe ∧ doe ≤ 146095)
   (hyoe : yoe = yoe_from_doe doe)
@@ -258,20 +237,18 @@ theorem yoe_le_of_doe_lt_146096 {doe yoe : Int} (hdoe : 36524 ≤ doe ∧ doe �
   have : 0 ≤ doe := by omega
   have hlt : doe < 146096 := by omega
 
-  have : doe.tdiv 146096 = 0 := Int.tdiv_eq_zero_of_lt this hlt
+  have := Int.tdiv_eq_zero_of_lt this hlt
   have := yoe_of_doe_lt_146096 hdoe hyoe
 
   have hzero : 0 ≤ doe - doe.tdiv 1460 + doe.tdiv 36524 := by
     have : 0 ≤ doe.tdiv 36524 := by match doe with | Int.ofNat _ => exact Int.tdiv_of_nat_le
     omega
-  have : 0 ≤ (doe - doe.tdiv 1460 + doe.tdiv 36524).tdiv 365 :=
-      @Int.tdiv_nonneg (doe - doe.tdiv 1460 + doe.tdiv 36524) 365 hzero (Int.le.intro_sub (365 + 0) rfl)
+  have :=  @Int.tdiv_nonneg _ 365 hzero (Int.le.intro_sub (365 + 0) rfl)
   simp_all
 
-  exact @tdiv_of_sub_tdiv_add_tdiv_lt doe hdoe.left (by omega) hzero (by omega)
+  exact tdiv_of_sub_tdiv_add_tdiv_le hdoe.left (by omega)
 
-theorem yoe_le_of_doe_eq_146096 {doe yoe : Int} (hdoe : doe = 146096)
-  (hyoe : yoe = yoe_from_doe doe)
+theorem yoe_le_of_doe_eq_146096 {doe yoe : Int} (hd : doe = 146096) (hy : yoe = yoe_from_doe doe)
     : yoe = 399 := by
   simp_all
   rfl
@@ -281,17 +258,17 @@ theorem yoe_le {doe yoe : Int} (hdoe : 0 ≤ doe ∧ doe ≤ 146096)
     : 0 ≤ yoe ∧ yoe ≤ 399 := by
   if h : doe ≤ 1459
   then
-    have := @yoe_le_of_doe_lt_1460 doe yoe (by omega) hyoe
+    have := yoe_le_of_doe_lt_1460 (by omega) hyoe
     omega
   else if h : doe ≤ 36523
   then
-    have := @yoe_le_of_doe_lt_36524 doe yoe (by omega) hyoe
+    have := yoe_le_of_doe_lt_36524 (by omega) hyoe
     omega
   else if h : doe < 146096
   then
-    exact @yoe_le_of_doe_lt_146096 doe yoe (by omega) hyoe
+    exact yoe_le_of_doe_lt_146096 (by omega) hyoe
   else
-    have := @yoe_le_of_doe_eq_146096 doe yoe (by omega) hyoe
+    have := yoe_le_of_doe_eq_146096 (by omega) hyoe
     omega
 
 /-- Is leap year of year of era `yoe` starting at 0
@@ -833,7 +810,6 @@ theorem isValid (year : Year.Offset) (month : Month.Ordinal) (day : Day.Ordinal)
   exact doy_sub_le mp doy (isLeapOfYearOfEra yoe.toNat) hmp hmp' (by split at hdoy <;> simp_all)
 
 end Verification
-
 
 open Verification in
 

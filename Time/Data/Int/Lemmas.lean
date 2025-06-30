@@ -165,7 +165,7 @@ protected theorem sub_tdiv_mul_le_pred {a : Int} {n : Nat}
   rw [Int.sub_tdiv_eq_tmod a (n + 1)]
   exact Int.lt_add_one_iff.mp (@Int.tmod_lt_of_pos a (n + 1) (succ_ofNat_pos n))
 
-protected theorem tdiv_of_sub_tdiv_eq_ofNat_div_of_sub_div {a : Int} {k l: Nat} (ha : 0 ≤ a)
+protected theorem tdiv_of_sub_tdiv_eq_ofNat {a : Int} {k l: Nat} (ha : 0 ≤ a)
     : (a - a.tdiv l).tdiv k = Int.ofNat ((a.toNat - a.toNat / l) / k) := by
   generalize h : a.toNat = n
   unfold Int.tdiv
@@ -185,13 +185,29 @@ protected theorem tdiv_of_sub_tdiv_eq_ofNat_div_of_sub_div {a : Int} {k l: Nat} 
     rw [heq] at hle
     contradiction
 
-protected theorem tdiv_of_sub_tdiv_lt {a : Int} {k l j : Nat}
-  (hk : 0 < k) (hl : 0 < l) (hm : ∃ m, j = l * m ∧ 0 < m ∧ m < k * l)
-  (h1 : k * l ≤ a) (h2 : a < k * j + (j / l))
-    : (a - a.tdiv (k * l)).tdiv k < j := by
-  suffices (a.toNat - a.toNat / (k * l)) / k < j by
-    have h := @Int.tdiv_of_sub_tdiv_eq_ofNat_div_of_sub_div a k (k*l) (by omega)
-    rw [Int.natCast_mul k l] at h
-    rw [h]
-    exact @Int.ofNat_lt.mpr this
-  exact Nat.div_of_sub_div_lt (by omega) (by omega) hm (by omega)
+protected theorem tdiv_of_sub_tdiv_add_tdiv_eq_ofNat {k l m : Nat} {a : Int} (h : l ≤ a)
+    : (a - a.tdiv k + a.tdiv l).tdiv m = Int.ofNat (a.toNat - a.toNat / k + a.toNat / l) / m := by
+  generalize h : a.toNat = n
+  unfold Int.tdiv
+  split <;> simp_all
+  · expose_names
+    split at heq <;> simp_all
+    · expose_names
+      rw [← heq_2] at heq
+      have := @Int.natCast_sub (n / k) n (Nat.div_le_self n k)
+      rw [this]
+      rw [← heq]
+      simp
+    · omega
+  · expose_names
+    split at heq <;> simp_all
+    · expose_names
+      have hle : 0 ≤ (n : Int) - n / n_2 + n / l := by
+        have : 0 ≤ (n : Int) / l := by
+          norm_cast
+          exact Nat.zero_le (n / l)
+        have := Nat.div_le_self n n_2
+        omega
+      rw [heq] at hle
+      contradiction
+    · omega

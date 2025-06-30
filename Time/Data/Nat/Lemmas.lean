@@ -95,3 +95,102 @@ protected theorem div_of_sub_div_lt {n k l j : Nat}
           rw [← Nat.div_div_eq_div_mul (k * j) k l, Nat.mul_div_cancel_left j (by omega)]
         rw [this] at h
         exact (Nat.eq_of_le_of_lt_succ h hlt_add).symm)
+
+-- see Std.Time.Verification.tdiv_of_sub_tdiv_le
+example {n : Nat} (h1 : 1460 ≤ n) (h2: n ≤ 36523) : (n - n / 1460) / 365 < 100 := by
+  exact @Nat.div_of_sub_div_lt n 365 4 100 (by omega) (by omega) ⟨25, by omega⟩ (by omega)
+
+theorem sub_succ_add {n k : Nat} (h : k < n) : n - k.succ + k = n - 1 := by
+  induction k with
+  | zero => omega
+  | succ k ih =>
+    rw [Nat.add_comm k 1, ← Nat.add_succ 1 k]
+    rw [← ih (by omega)]
+    rw [← @Nat.sub_add_comm n k k.succ (by omega)]
+    rw [← @Nat.sub_add_comm n (1 + k) (1 + k.succ) (by omega)]
+    rw [Nat.add_comm 1 k, ← Nat.add_assoc]
+    omega
+
+theorem add_sub_le_eq (n : Nat) {m k : Nat} (h1 : m < k) (h2 : k < n) : n - k + m = n - (k - m) := by
+  induction k with
+  | zero => omega
+  | succ k ih =>
+    have hOr :  m < k ∨ m = k := by omega
+    cases hOr
+    · expose_names
+      have := ih h (by omega)
+      omega
+    · expose_names
+      rw [h]
+      simp
+      rw [← @Nat.succ_eq_add_one k]
+      exact sub_succ_add (by omega)
+
+theorem sub_pred {n m : Nat} (h1 : 0 < m) (h2 : m ≤ n): n - pred m = succ (n - m) := by
+  unfold Nat.pred
+  split
+  · contradiction
+  · omega
+
+theorem div_of_sub_div_add_div_lt {i j k l m : Nat} (n : Nat)
+  (hi : i = j * l + l / k - 1) (hm : m = j * k)
+  (h1 : i ≤ n) (h2 : n < j * k * l + l - k) (h3 : k ∣ l)
+  (h4 : l - k < j * k) (h5 : k < l) (h6 : l < n) (h7 : m ≤ i)
+    : (n - n / m + n / i) / j < k * l := by
+  have hjk := zero_lt_of_lt h4
+  have hk : 0 < k := Nat.lt_of_mul_lt_mul_left (by simp; exact hjk)
+  have hj : 0 < j := Nat.lt_of_mul_lt_mul_left (by simp; rwa [Nat.mul_comm] at hjk)
+  have hilt : 0 < i := by rw [hi]; omega
+  have : n / i ≤ k - 1 := by
+    exact (Nat.div_le_iff_le_mul hilt).mpr (by
+      rw [Nat.sub_one_mul, Nat.sub_add_cancel (Nat.le_mul_of_pos_left i hk)]
+      rw [hi, Nat.mul_sub, Nat.mul_add, ← Nat.mul_assoc, Nat.mul_comm k j]
+      apply Nat.le_of_lt_add_one
+      rw [Nat.sub_add_cancel (by omega), Nat.mul_one]
+      have : l - k ≤ k * (l / k) - k := by
+        rw [Nat.mul_div_cancel' h3]
+        exact Nat.le_refl (l - k)
+      omega)
+  have : k - 1 ≤ j * (k * l) / i := by
+    exact (Nat.le_div_iff_mul_le hilt).mpr (by
+      rw [Nat.sub_mul, Nat.mul_comm 1 i, Nat.mul_one, hi, Nat.mul_sub, Nat.mul_add]
+      rw [← Nat.mul_assoc, Nat.mul_comm k j, Nat.mul_one, Nat.mul_div_cancel' h3]
+      rw [← Nat.mul_assoc, Nat.sub_sub]
+      simp +arith
+      have : 1 ≤ l / k := (Nat.le_div_iff_mul_le hk).mpr (by omega)
+      have := Nat.le_mul_of_pos_left l hj
+      omega)
+  have : n / i ≤ n / m := Nat.div_le_div (Nat.le_refl n) h7 (by omega)
+  exact Nat.div_lt_of_lt_mul (by
+    have h : n < j * (k * l) ∨ j * (k * l) ≤ n := by omega
+    cases h
+    · expose_names
+      have : n - n / m + n / i ≤ n := by
+        have : n / m < l := Nat.div_lt_of_lt_mul (by rw [hm]; rwa [Nat.mul_assoc])
+        omega
+      exact Nat.lt_of_le_of_lt this h
+    · expose_names
+      rw [hm]
+      have : n / (j * k) = l := by
+        have := (@Nat.le_div_iff_mul_le (j * k) l n hjk).mpr
+                                    (by rwa [← Nat.mul_assoc, Nat.mul_comm] at h)
+        have := (@Nat.div_le_iff_le_mul (j * k) n l hjk).mpr
+                                    (by rw [Nat.mul_comm] at h2; omega)
+        omega
+      rw [this]
+      have : n / i = k - 1 := by
+        have := @Nat.div_le_div _ _ i i h (by omega) (by exact Nat.ne_zero_of_lt hilt)
+        omega
+      rw [this, add_sub_le_eq n (by omega) h6]
+      have : l - (k - 1) = l - k + 1 := by
+        rw [← Nat.pred_eq_sub_one, ← Nat.succ_eq_add_one]
+        exact sub_pred (@Nat.lt_of_mul_lt_mul_left j 0 k (by omega)) (le_of_succ_le h5)
+      rw [this]
+      rw [← Nat.mul_assoc]
+      exact (Nat.sub_lt_iff_lt_add (by omega)).mpr (by omega))
+
+-- see Std.Time.Verification.tdiv_of_sub_tdiv_add_tdiv_le
+example (n : Nat) (h1 : 36524 ≤ n) (h2 : n < 146096)
+    : (n - n / 1460 + n / 36524) / 365 < 400 := by
+  exact @Nat.div_of_sub_div_add_div_lt 36524 365 4 100 1460 n (by omega)
+    (by omega) (by omega) (by omega) (by omega) (by omega) (by omega) (by omega) (by omega)
