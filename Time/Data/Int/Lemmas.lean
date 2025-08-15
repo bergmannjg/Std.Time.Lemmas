@@ -12,19 +12,6 @@ namespace Int
 
 open Int
 
-protected theorem of_nat_sub_add_eq {a b c : Nat} (h :  b ≤ a)
-    : ofNat a - ofNat b + ofNat c = ofNat (a - b + c) := by
-  have : ofNat (a - b) = ofNat a - ofNat b := Int.ofNat_sub h
-  rw [← this]
-  rfl
-
-protected theorem of_nat_add_sub_eq {a b c : Nat} (h :  c ≤ a + b)
-    : ofNat a + ofNat b - ofNat c = ofNat (a + b - c) := by
-  have : ofNat a + ofNat b = ofNat (a + b) := Int.natCast_add a b
-  rw [this]
-  have :  ofNat (a + b - c) = ofNat (a + b) - ofNat c := @Int.ofNat_sub c (a + b) h
-  exact id (Eq.symm this)
-
 protected theorem sub_tdiv_eq_tmod (a b : Int) : a - (a.tdiv b) * b = tmod a b := by
   rw [Int.mul_comm]
   exact Eq.symm (tmod_def a b)
@@ -57,7 +44,7 @@ protected theorem tdiv_sub_add_eq_div_sub_add {a b c d e : Nat}
 protected theorem tdiv_sub_eq_div_sub {a b c d : Nat}
   (h : a = ((b:Int) - (b:Int).tdiv c).tdiv d) (hle : 0 ≤ (b:Int) - (b:Int).tdiv c)
     : a = (b - b / c) / d := by
-  simp [@Int.tdiv_sub_add_eq_div_sub_add a b c 0 d (by simp [h]) (by simp [hle]; omega)]
+  simp [@Int.tdiv_sub_add_eq_div_sub_add a b c 0 d (by simp [h]) (by simp_all)]
 
 protected theorem tdiv_of_nat_le {a b : Nat} : 0 ≤ Int.tdiv (ofNat a) (ofNat b) := by
   exact le.intro_sub (a / b + 0) rfl
@@ -140,11 +127,6 @@ protected theorem le_sub_tdiv_mul (a b : Int) (ha : a < 0) (hb : 1 < b)
       rw [this] at hn
       exact hn
     · contradiction
-
-protected theorem add_mul_tmod_self {a b c : Int} (ha : 0 ≤ a) (habc : 0 ≤ a + b * c)
-    : (a + b * c).tmod c = a.tmod c := by
-  rw [@Int.tmod_eq_emod (a + b * c) c, @Int.tmod_eq_emod a c]
-  simp_all [Int.add_mul_emod_self_right]
 
 protected theorem mod_zero_of_add_mul_eq_iff (a b c : Int)
     : a.tmod c = 0 ↔ (a + c * b).tmod c = 0  :=
