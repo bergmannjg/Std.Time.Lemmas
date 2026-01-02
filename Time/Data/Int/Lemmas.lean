@@ -28,7 +28,7 @@ protected theorem tdiv_sub_add_eq_div_sub_add {a b c d e : Nat}
       rw [← Int.ofNat_inj.mp hn] at h
       exact ofNat_inj.mp h
     have : b - b / c + b / d = m := by
-      rw [← Int.ofNat_eq_coe, ← Int.ofNat_eq_coe, ← Int.ofNat_eq_coe] at heq
+      rw [← Int.ofNat_eq_natCast, ← Int.ofNat_eq_natCast, ← Int.ofNat_eq_natCast] at heq
       have : ofNat b - ofNat b / ofNat c + ofNat b / ofNat d = ofNat (b - b / c + b / d) := by
         have : ofNat b / ofNat c = ofNat (b / c) := rfl
         rw [this]
