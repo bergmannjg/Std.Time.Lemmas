@@ -9,8 +9,8 @@ import Time.Data.Int.Lemmas
 
 main theorem:
 
-* `Std.Time.Verification.isValid`: proof that the date of `Std.Time.ofDaysSinceUNIXEpoch'` is valid.
-
+* `Std.Time.Verification.isValid`: proof that the date of `Std.Time.ofDaysSinceUNIXEpoch'` is valid
+* `Std.Time.Verification.ofDaysSinceUNIXEpoch_eq_ofDaysSinceUNIXEpoch'`: proof that the definitions are equal.
 -/
 
 namespace Std
@@ -756,5 +756,32 @@ def ofDaysSinceUNIXEpoch' (day : Day.Offset) : PlainDate :=
   let y := y' + (if m <= 2 then 1 else 0)
   ⟨y, ⟨m, hm⟩, ⟨d, hd⟩, isValid y ⟨m, hm⟩ ⟨d, hd⟩ hyoe hdoy hmp rfl rfl rfl rfl rfl⟩
 
-example : PlainDate.ofDaysSinceUNIXEpoch (-719468) =  ⟨0, 3, 1, by decide⟩ := rfl
-example : ofDaysSinceUNIXEpoch' (-719468) =  ⟨0, 3, 1, by decide⟩ := rfl
+@[grind →] private theorem ext_le {n : Int} {d : Day.Ordinal} {h : 1 ≤ n ∧ n ≤ 31} (h : ⟨n, h⟩ ≤ d)
+    :  n ≤ d.1 := by
+  assumption
+
+private theorem clip_eq_date (y m d : Int)
+  (hm : 1 ≤ m ∧ m ≤ 12) (hd : 1 ≤ d ∧ d ≤ 31)
+  (hv : ⟨d, hd⟩ ≤ Month.Ordinal.days (Year.Offset.isLeap y) (⟨m, hm⟩ : Month.Ordinal))
+    : PlainDate.ofYearMonthDayClip y (.clip m (by decide)) (.clip d (by decide))
+    = ⟨y, ⟨m, hm⟩, ⟨d, hd⟩, hv⟩ := by
+  simp [PlainDate.ofYearMonthDayClip, Month.Ordinal.clipDay, Internal.Bounded.LE.clip,
+          Year.Offset.isLeap, Month.Ordinal.days, Year.Offset.toInt, Day.Ordinal]
+  simp_all
+  intro h
+  split
+  split <;> simp_all <;> simp [Month.Ordinal.days, Year.Offset.isLeap, Year.Offset.toInt] at hv
+  case isFalse =>
+    simp [Year.Offset.isLeap, Year.Offset.toInt, Month.Ordinal.days] at hv
+    grind only [→ ext_le]
+  all_goals grind only [→ ext_le]
+
+/-- PlainDate.ofDaysSinceUNIXEpoch is equal to ofDaysSinceUNIXEpoch'
+    * PlainDate.ofDaysSinceUNIXEpoch uses clipping to create the PlainDate
+    * ofDaysSinceUNIXEpoch' has a proof that the created PlainDate is valid.
+-/
+theorem ofDaysSinceUNIXEpoch_eq_ofDaysSinceUNIXEpoch' (day : Day.Offset)
+    : PlainDate.ofDaysSinceUNIXEpoch day = ofDaysSinceUNIXEpoch' day := by
+  unfold PlainDate.ofDaysSinceUNIXEpoch
+  rw [clip_eq_date]
+  rfl
